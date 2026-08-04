@@ -74,7 +74,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="font-bold text-base text-white">Apex Plumbing & HVAC</h2>
+                        <h2 class="font-bold text-base text-white" id="header-biz-name">Apex Plumbing & HVAC</h2>
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Webhook Active
                         </span>
@@ -83,9 +83,18 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
-                <button id="open-simulator-btn" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-brand-400 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-2 transition">
-                    <i class="fa-solid fa-paper-plane"></i> <span class="hidden sm:inline">Simulate Lead Webhook</span>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="open-embed-btn" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-code text-blue-400"></i> <span class="hidden md:inline">Embed Lead Form</span>
+                </button>
+                <button id="open-settings-btn" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-gear text-amber-400"></i> <span class="hidden md:inline">Settings / Twilio</span>
+                </button>
+                <button id="open-billing-btn" class="px-3 py-2 bg-brand-600/20 hover:bg-brand-600/30 text-brand-400 text-xs font-semibold rounded-lg border border-brand-500/30 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-credit-card"></i> <span class="hidden md:inline">Subscribe Plan</span>
+                </button>
+                <button id="open-simulator-btn" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition shadow-md shadow-brand-600/20">
+                    <i class="fa-solid fa-paper-plane"></i> <span class="hidden sm:inline">Simulate Lead</span>
                 </button>
                 <button id="logout-btn" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition" title="Logout">
                     <i class="fa-solid fa-power-off"></i>
@@ -174,6 +183,154 @@
         </main>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 hidden">
+        <div class="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-amber-400"></i> Contractor & Twilio SMS Settings
+                </h3>
+                <button class="close-settings-btn text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="settings-form" class="space-y-4">
+                <div class="space-y-3 pt-1">
+                    <h4 class="text-xs font-bold text-brand-400 uppercase tracking-wider">Business Details</h4>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Contractor Business Name</label>
+                        <input type="text" id="setting-biz-name" value="Apex Plumbing & HVAC" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2 border-t border-slate-800">
+                    <h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Twilio SMS API Credentials</span>
+                        <span class="text-[10px] text-slate-500 font-normal">Optional - Sandbox Mode Active</span>
+                    </h4>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Twilio Account SID</label>
+                        <input type="text" id="setting-twilio-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm font-mono focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Twilio Auth Token</label>
+                        <input type="password" id="setting-twilio-token" placeholder="your_auth_token" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm font-mono focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Twilio Sender Phone Number</label>
+                        <input type="text" id="setting-twilio-phone" placeholder="+15550001122" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm font-mono focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2 border-t border-slate-800">
+                    <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Automated AI SMS Prompt Template</h4>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Custom Text Response Format</label>
+                        <textarea id="setting-ai-template" rows="3" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm font-mono focus:outline-none focus:border-amber-500">Hi {first_name}! Thanks for reaching out to {business_name} regarding '{service}'. We have licensed technicians available. Can we call you now to assist?</textarea>
+                        <p class="text-[11px] text-slate-500 mt-1">Available variables: <code class="text-slate-300">{first_name}</code>, <code class="text-slate-300">{business_name}</code>, <code class="text-slate-300">{service}</code></p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3">
+                    <button type="button" class="close-settings-btn px-4 py-2 bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold rounded-xl">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-brand-600/30 flex items-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Embed Form Modal -->
+    <div id="embed-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 hidden">
+        <div class="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-code text-blue-400"></i> Customer Embed Code & Webhook
+                </h3>
+                <button class="close-embed-btn text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-300">Embed this HTML snippet on your client's website to automatically capture leads and trigger instant SMS follow-ups.</p>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-400">Your Webhook Endpoint URL</label>
+                <input type="text" readonly id="webhook-url-input" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-brand-400 font-mono text-xs select-all">
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-400">HTML Webform Snippet</label>
+                <textarea readonly rows="5" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-300 font-mono text-[11px] select-all">&lt;form action="https://local-lead-rescue.vercel.app/api/webhook/lead" method="POST"&gt;
+  &lt;input type="text" name="name" placeholder="Your Name" required /&gt;
+  &lt;input type="tel" name="phone" placeholder="Phone Number" required /&gt;
+  &lt;input type="text" name="service" placeholder="Service Needed" required /&gt;
+  &lt;button type="submit"&gt;Get Instant Response&lt;/button&gt;
+&lt;/form&gt;</textarea>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="button" class="close-embed-btn px-4 py-2 bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold rounded-xl">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stripe Subscription Billing Modal -->
+    <div id="billing-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 hidden">
+        <div class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <div>
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-credit-card text-brand-400"></i> Local Lead Rescue Pricing Plans
+                    </h3>
+                    <p class="text-xs text-slate-400">Select a monthly subscription plan for your business</p>
+                </div>
+                <button class="close-billing-btn text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Starter Plan -->
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between hover:border-brand-500/50 transition">
+                    <div>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">STARTER</span>
+                        <h4 class="text-2xl font-extrabold text-white mt-3">$99 <span class="text-xs font-normal text-slate-400">/ month</span></h4>
+                        <p class="text-xs text-slate-400 mt-1">For single trade contractors</p>
+                        <ul class="text-xs text-slate-300 space-y-2 mt-4">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-brand-500"></i> Up to 150 Lead Captures/mo</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-brand-500"></i> Automated AI SMS Responder</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-brand-500"></i> Mobile Pipeline Dashboard</li>
+                        </ul>
+                    </div>
+                    <a href="https://stripe.com" target="_blank" class="mt-6 w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition border border-slate-700">
+                        Subscribe Starter ($99/mo)
+                    </a>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="bg-slate-950 border-2 border-brand-500/60 rounded-2xl p-5 flex flex-col justify-between shadow-xl shadow-brand-500/10 relative">
+                    <span class="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500 text-slate-950 uppercase">POPULAR</span>
+                    <div>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/30">PRO AUTOMATION</span>
+                        <h4 class="text-2xl font-extrabold text-white mt-3">$199 <span class="text-xs font-normal text-slate-400">/ month</span></h4>
+                        <p class="text-xs text-slate-400 mt-1">For growing service fleets</p>
+                        <ul class="text-xs text-slate-300 space-y-2 mt-4">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-brand-500"></i> Unlimited Lead Captures</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-brand-500"></i> Dedicated Twilio Phone Line</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-brand-500"></i> Multi-User Staff Access</li>
+                        </ul>
+                    </div>
+                    <a href="https://stripe.com" target="_blank" class="mt-6 w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition shadow-lg shadow-brand-600/30">
+                        Subscribe Pro ($199/mo)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Webhook Lead Simulator Modal -->
     <div id="simulator-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 hidden">
         <div class="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
@@ -254,7 +411,7 @@
         </div>
     </div>
 
-    <!-- Application Script Inlined for Bulletproof Production Exec -->
+    <!-- Application Script -->
     <script>
         let currentFilter = 'ALL';
         let activeLeadsData = [];
@@ -278,35 +435,11 @@
                 activeLeadsData = data.leads || [];
                 renderStats(data.stats);
                 renderLeadsList();
+                if (data.settings && data.settings.business_name) {
+                    document.getElementById('header-biz-name').textContent = data.settings.business_name;
+                }
             } catch (e) {
                 console.error("Failed to fetch leads:", e);
-                // Render fallback demo items if backend cold-starting
-                if (activeLeadsData.length === 0) {
-                    activeLeadsData = [
-                        {
-                            id: 1,
-                            name: "Sarah Jenkins",
-                            phone: "(555) 234-5678",
-                            service: "Emergency Plumbing - Water Heater Leak",
-                            notes: "Water heater leaking in garage, need urgent quote.",
-                            source: "Google Local Ad",
-                            status: "New",
-                            ai_sms_draft: "Hi Sarah! Thanks for reaching out regarding your water heater leak. Can we call you now to assist?"
-                        },
-                        {
-                            id: 2,
-                            name: "Marcus Vance",
-                            phone: "(555) 876-5432",
-                            service: "HVAC AC Repair",
-                            notes: "AC unit blowing warm air, temp is 88 degrees inside.",
-                            source: "Website Missed Call",
-                            status: "Followed Up",
-                            ai_sms_draft: "Hi Marcus! We received your request about your AC blowing warm air. Would 2:30 PM work for an inspection?"
-                        }
-                    ];
-                    renderStats({ new_leads: 1, followed_up: 1, closed_jobs: 1, total_leads: 3, conversion_rate: 33.3 });
-                    renderLeadsList();
-                }
             }
         }
 
@@ -332,7 +465,7 @@
                     <div class="text-center py-12 bg-slate-900/40 border border-slate-800 rounded-2xl">
                         <i class="fa-solid fa-inbox text-4xl text-slate-700 mb-3"></i>
                         <h4 class="text-base font-semibold text-slate-300">No leads found under "${currentFilter}"</h4>
-                        <p class="text-xs text-slate-500 mt-1">Use "Simulate Lead Webhook" above to add leads.</p>
+                        <p class="text-xs text-slate-500 mt-1">Use "Simulate Lead" above to add leads.</p>
                     </div>
                 `;
                 return;
@@ -424,7 +557,6 @@
                     const newStatus = btn.dataset.status;
                     const item = activeLeadsData.find(l => l.id === id);
                     if (item) item.status = newStatus;
-                    renderStats({ new_leads: activeLeadsData.filter(l=>l.status==='New').length, followed_up: activeLeadsData.filter(l=>l.status==='Followed Up').length, closed_jobs: activeLeadsData.filter(l=>l.status==='Closed').length, total_leads: activeLeadsData.length, conversion_rate: 33.3 });
                     renderLeadsList();
                     try {
                         await fetch('/api/lead/status', {
@@ -432,28 +564,25 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ lead_id: id, status: newStatus })
                         });
+                        fetchLeads();
                     } catch(e){}
                 };
             });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const loginForm = document.getElementById('login-form');
-            if (loginForm) {
-                loginForm.onsubmit = (e) => {
-                    e.preventDefault();
-                    unlockDashboard();
-                };
-            }
+            document.getElementById('webhook-url-input').value = window.location.origin + '/api/webhook/lead';
 
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.onclick = () => {
-                    localStorage.removeItem('lead_rescue_token');
-                    document.getElementById('app-wrapper').classList.add('hidden');
-                    document.getElementById('login-modal').classList.remove('hidden');
-                };
-            }
+            document.getElementById('login-form').onsubmit = (e) => {
+                e.preventDefault();
+                unlockDashboard();
+            };
+
+            document.getElementById('logout-btn').onclick = () => {
+                localStorage.removeItem('lead_rescue_token');
+                document.getElementById('app-wrapper').classList.add('hidden');
+                document.getElementById('login-modal').classList.remove('hidden');
+            };
 
             document.querySelectorAll('.filter-tab').forEach(tab => {
                 tab.onclick = () => {
@@ -469,16 +598,80 @@
                 };
             });
 
+            // Simulator Modal
             document.getElementById('open-simulator-btn').onclick = () => {
                 document.getElementById('simulator-modal').classList.remove('hidden');
             };
-
             document.querySelectorAll('.close-sim-btn').forEach(btn => {
                 btn.onclick = () => {
                     document.getElementById('simulator-modal').classList.add('hidden');
                 };
             });
 
+            // Settings Modal
+            document.getElementById('open-settings-btn').onclick = async () => {
+                document.getElementById('settings-modal').classList.remove('hidden');
+                try {
+                    const res = await fetch('/api/settings');
+                    const data = await res.json();
+                    if (data.settings) {
+                        document.getElementById('setting-biz-name').value = data.settings.business_name || '';
+                        document.getElementById('setting-twilio-sid').value = data.settings.twilio_sid || '';
+                        document.getElementById('setting-twilio-token').value = data.settings.twilio_token || '';
+                        document.getElementById('setting-twilio-phone').value = data.settings.twilio_phone || '';
+                        document.getElementById('setting-ai-template').value = data.settings.ai_template || '';
+                    }
+                } catch(e){}
+            };
+            document.querySelectorAll('.close-settings-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.getElementById('settings-modal').classList.add('hidden');
+                };
+            });
+
+            document.getElementById('settings-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const settingsData = {
+                    business_name: document.getElementById('setting-biz-name').value,
+                    twilio_sid: document.getElementById('setting-twilio-sid').value,
+                    twilio_token: document.getElementById('setting-twilio-token').value,
+                    twilio_phone: document.getElementById('setting-twilio-phone').value,
+                    ai_template: document.getElementById('setting-ai-template').value
+                };
+
+                try {
+                    await fetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settingsData)
+                    });
+                    document.getElementById('settings-modal').classList.add('hidden');
+                    fetchLeads();
+                    alert('Settings updated successfully!');
+                } catch(e){}
+            };
+
+            // Embed Modal
+            document.getElementById('open-embed-btn').onclick = () => {
+                document.getElementById('embed-modal').classList.remove('hidden');
+            };
+            document.querySelectorAll('.close-embed-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.getElementById('embed-modal').classList.add('hidden');
+                };
+            });
+
+            // Billing Modal
+            document.getElementById('open-billing-btn').onclick = () => {
+                document.getElementById('billing-modal').classList.remove('hidden');
+            };
+            document.querySelectorAll('.close-billing-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.getElementById('billing-modal').classList.add('hidden');
+                };
+            });
+
+            // Simulator Submit
             document.getElementById('simulator-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('sim-name').value;
@@ -486,23 +679,14 @@
                 const service = document.getElementById('sim-service').value;
                 const notes = document.getElementById('sim-notes').value;
 
-                const newLead = {
-                    id: Date.now(),
-                    name, phone, service, notes,
-                    source: "Website Missed Call Form",
-                    status: "Followed Up",
-                    ai_sms_draft: `Hi ${name.split(' ')[0]}! Thanks for reaching out regarding ${service}. We received your request and can help today!`
-                };
-                activeLeadsData.unshift(newLead);
-                document.getElementById('simulator-modal').classList.add('hidden');
-                renderLeadsList();
-
                 try {
                     await fetch('/api/webhook/lead', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, phone, service, notes, source: 'Website Form' })
                     });
+                    document.getElementById('simulator-modal').classList.add('hidden');
+                    fetchLeads();
                 } catch(e){}
             };
 
@@ -512,12 +696,19 @@
                 };
             });
 
-            document.getElementById('confirm-send-sms-btn').onclick = () => {
+            document.getElementById('confirm-send-sms-btn').onclick = async () => {
                 if (selectedLeadForSMS) {
-                    selectedLeadForSMS.status = 'Followed Up';
-                    renderLeadsList();
+                    const msg = document.getElementById('sms-message-text').value;
+                    try {
+                        await fetch('/api/sms/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lead_id: selectedLeadForSMS.id, phone: selectedLeadForSMS.phone, message: msg })
+                        });
+                        document.getElementById('sms-modal').classList.add('hidden');
+                        fetchLeads();
+                    } catch(e){}
                 }
-                document.getElementById('sms-modal').classList.add('hidden');
             };
 
             if (localStorage.getItem('lead_rescue_token')) {

@@ -3,7 +3,6 @@ import os
 import json
 import time
 
-# Use /tmp on Vercel serverless or local directory
 if os.path.exists('/tmp') and os.access('/tmp', os.W_OK):
     DB_FILE = os.path.join('/tmp', 'leads_database.sqlite')
 else:
@@ -32,8 +31,29 @@ def init_db():
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
     conn.commit()
 
+    # Seed default settings if empty
+    default_settings = {
+        "business_name": "Apex Plumbing & HVAC",
+        "business_phone": "(555) 123-4567",
+        "twilio_sid": "",
+        "twilio_token": "",
+        "twilio_phone": "",
+        "ai_template": "Hi {first_name}! Thanks for reaching out to {business_name} regarding '{service}'. We have licensed technicians available. Can we call you now to assist?"
+    }
+    for k, v in default_settings.items():
+        cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
+    conn.commit()
+
+    # Seed leads if empty
     cursor.execute("SELECT COUNT(*) FROM leads")
     count = cursor.fetchone()[0]
     if count == 0:
@@ -45,7 +65,7 @@ def init_db():
                 "notes": "Water heater leaking in garage, need urgent quote.",
                 "source": "Google Local Ad",
                 "status": "New",
-                "ai_sms_draft": "Hi Sarah! Thanks for reaching out to Apex Services regarding your water heater leak. We can have a licensed technician at your property within 45 mins. Are you available for a quick call?"
+                "ai_sms_draft": "Hi Sarah! Thanks for reaching out to Apex Plumbing & HVAC regarding your water heater leak. We can have a licensed technician at your property within 45 mins. Are you available for a quick call?"
             },
             {
                 "name": "Marcus Vance",
@@ -137,3 +157,22 @@ def get_stats():
         "total_leads": total_count,
         "conversion_rate": conversion_rate
     }
+
+def get_settings():
+    init_db()
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM settings")
+    rows = cursor.fetchall()
+    settings = {row['key']: row['value'] for row in rows}
+    conn.close()
+    return settings
+
+def update_settings(settings_dict):
+    init_db()
+    conn = get_db()
+    cursor = conn.cursor()
+    for k, v in settings_dict.items():
+        cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (k, v))
+    conn.commit()
+    conn.close()
