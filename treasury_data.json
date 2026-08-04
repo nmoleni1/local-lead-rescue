@@ -1,0 +1,27 @@
+{
+  "balance": 5.0,
+  "total_earned": 5.0,
+  "total_spent": 0.0,
+  "current_tier_index": 0,
+  "auto_monetize": false,
+  "services_rendered": 0,
+  "transactions": [
+    {
+      "id": 1,
+      "type": "grant",
+      "desc": "Initial Seed Compute Grant",
+      "amount": 5.0,
+      "time": "Initial"
+    }
+  ],
+  "logs": [
+    {
+      "time": "00:00:01",
+      "text": "System initialized. Current Tier: Flash Light (Starter)."
+    },
+    {
+      "time": "00:00:02",
+      "text": "Treasury online. Target: Earn $25.00 to upgrade to Pro Velocity 3.5."
+    }
+  ]
+}
