@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "local-lead-rescue-dashboard",
   "builds": [
     {
       "src": "server.py",

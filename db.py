@@ -3,7 +3,11 @@ import os
 import json
 import time
 
-DB_FILE = "leads_database.sqlite"
+# Use /tmp on Vercel serverless or local directory
+if os.path.exists('/tmp') and os.access('/tmp', os.W_OK):
+    DB_FILE = os.path.join('/tmp', 'leads_database.sqlite')
+else:
+    DB_FILE = 'leads_database.sqlite'
 
 def get_db():
     conn = sqlite3.connect(DB_FILE)
@@ -30,7 +34,6 @@ def init_db():
     ''')
     conn.commit()
 
-    # Seed initial realistic leads if empty
     cursor.execute("SELECT COUNT(*) FROM leads")
     count = cursor.fetchone()[0]
     if count == 0:
@@ -74,6 +77,7 @@ def init_db():
     conn.close()
 
 def get_all_leads():
+    init_db()
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM leads ORDER BY created_at DESC")
@@ -83,6 +87,7 @@ def get_all_leads():
     return leads
 
 def add_lead(name, phone, service, notes="", source="Webhook Form", ai_sms_draft="", status="New"):
+    init_db()
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
@@ -95,6 +100,7 @@ def add_lead(name, phone, service, notes="", source="Webhook Form", ai_sms_draft
     return new_id
 
 def update_lead_status(lead_id, new_status, sms_sent=None):
+    init_db()
     conn = get_db()
     cursor = conn.cursor()
     if sms_sent is not None:
@@ -109,6 +115,7 @@ def update_lead_status(lead_id, new_status, sms_sent=None):
     conn.close()
 
 def get_stats():
+    init_db()
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM leads WHERE status = 'New'")
@@ -130,7 +137,3 @@ def get_stats():
         "total_leads": total_count,
         "conversion_rate": conversion_rate
     }
-
-if __name__ == "__main__":
-    init_db()
-    print("Database initialized successfully!")
