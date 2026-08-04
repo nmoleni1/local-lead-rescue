@@ -418,6 +418,19 @@
         let selectedLeadForSMS = null;
         let pollInterval = null;
 
+        function getStoredLeads() {
+            try {
+                const stored = localStorage.getItem('lead_rescue_local_leads');
+                return stored ? JSON.parse(stored) : null;
+            } catch(e) { return null; }
+        }
+
+        function saveStoredLeads(leads) {
+            try {
+                localStorage.setItem('lead_rescue_local_leads', JSON.stringify(leads));
+            } catch(e) {}
+        }
+
         function unlockDashboard() {
             localStorage.setItem('lead_rescue_token', 'demo_jwt_session_token_xyz89');
             const loginModal = document.getElementById('login-modal');
@@ -429,31 +442,89 @@
         }
 
         async function fetchLeads() {
+            let serverLeads = [];
+            let serverStats = null;
             try {
                 const res = await fetch('/api/leads');
                 const data = await res.json();
-                activeLeadsData = data.leads || [];
-                renderStats(data.stats);
-                renderLeadsList();
+                serverLeads = data.leads || [];
+                serverStats = data.stats;
                 if (data.settings && data.settings.business_name) {
                     document.getElementById('header-biz-name').textContent = data.settings.business_name;
                 }
             } catch (e) {
-                console.error("Failed to fetch leads:", e);
+                console.error("Server leads fetch error:", e);
             }
+
+            const localLeads = getStoredLeads();
+            if (localLeads && localLeads.length > 0) {
+                // Merge local leads and server leads by ID / name
+                const merged = [...localLeads];
+                serverLeads.forEach(sl => {
+                    if (!merged.some(ml => ml.id === sl.id || (ml.name === sl.name && ml.phone === sl.phone))) {
+                        merged.push(sl);
+                    }
+                });
+                activeLeadsData = merged;
+            } else if (serverLeads.length > 0) {
+                activeLeadsData = serverLeads;
+                saveStoredLeads(activeLeadsData);
+            } else {
+                activeLeadsData = [
+                    {
+                        id: 1,
+                        name: "Sarah Jenkins",
+                        phone: "(555) 234-5678",
+                        service: "Emergency Plumbing - Water Heater Leak",
+                        notes: "Water heater leaking in garage, need urgent quote.",
+                        source: "Google Local Ad",
+                        status: "New",
+                        ai_sms_draft: "Hi Sarah! Thanks for reaching out to Apex Plumbing & HVAC regarding your water heater leak. Can we call you now to assist?"
+                    },
+                    {
+                        id: 2,
+                        name: "Marcus Vance",
+                        phone: "(555) 876-5432",
+                        service: "HVAC AC Repair",
+                        notes: "AC unit blowing warm air, temp is 88 degrees inside.",
+                        source: "Website Missed Call",
+                        status: "Followed Up",
+                        ai_sms_draft: "Hi Marcus! We received your request about your AC blowing warm air. Would 2:30 PM work for an inspection?"
+                    },
+                    {
+                        id: 3,
+                        name: "Elena Rodriguez",
+                        phone: "(555) 432-1098",
+                        service: "Electrical Panel Upgrade",
+                        notes: "Looking to upgrade 100A panel to 200A for EV charger installation.",
+                        source: "Yelp Direct Form",
+                        status: "Closed",
+                        ai_sms_draft: "Hi Elena! Thanks for contacting us about your 200A panel upgrade for your EV charger. We've scheduled your estimate!"
+                    }
+                ];
+                saveStoredLeads(activeLeadsData);
+            }
+
+            calculateAndRenderStats();
+            renderLeadsList();
         }
 
-        function renderStats(stats) {
-            if (!stats) return;
-            document.getElementById('kpi-new-leads').textContent = stats.new_leads || 0;
-            document.getElementById('kpi-followed-up').textContent = stats.followed_up || 0;
-            document.getElementById('kpi-closed-jobs').textContent = stats.closed_jobs || 0;
-            document.getElementById('kpi-conversion-rate').textContent = `${stats.conversion_rate || 0}%`;
+        function calculateAndRenderStats() {
+            const newCount = activeLeadsData.filter(l => l.status === 'New').length;
+            const followedCount = activeLeadsData.filter(l => l.status === 'Followed Up').length;
+            const closedCount = activeLeadsData.filter(l => l.status === 'Closed').length;
+            const totalCount = activeLeadsData.length;
+            const rate = totalCount > 0 ? ((closedCount / totalCount) * 100).toFixed(1) : 0.0;
 
-            document.getElementById('count-all').textContent = stats.total_leads || 0;
-            document.getElementById('count-new').textContent = stats.new_leads || 0;
-            document.getElementById('count-followed').textContent = stats.followed_up || 0;
-            document.getElementById('count-closed').textContent = stats.closed_jobs || 0;
+            document.getElementById('kpi-new-leads').textContent = newCount;
+            document.getElementById('kpi-followed-up').textContent = followedCount;
+            document.getElementById('kpi-closed-jobs').textContent = closedCount;
+            document.getElementById('kpi-conversion-rate').textContent = `${rate}%`;
+
+            document.getElementById('count-all').textContent = totalCount;
+            document.getElementById('count-new').textContent = newCount;
+            document.getElementById('count-followed').textContent = followedCount;
+            document.getElementById('count-closed').textContent = closedCount;
         }
 
         function renderLeadsList() {
@@ -557,6 +628,8 @@
                     const newStatus = btn.dataset.status;
                     const item = activeLeadsData.find(l => l.id === id);
                     if (item) item.status = newStatus;
+                    saveStoredLeads(activeLeadsData);
+                    calculateAndRenderStats();
                     renderLeadsList();
                     try {
                         await fetch('/api/lead/status', {
@@ -564,7 +637,6 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ lead_id: id, status: newStatus })
                         });
-                        fetchLeads();
                     } catch(e){}
                 };
             });
@@ -631,8 +703,12 @@
 
             document.getElementById('settings-form').onsubmit = async (e) => {
                 e.preventDefault();
+                const bizName = document.getElementById('setting-biz-name').value;
+                if (bizName) {
+                    document.getElementById('header-biz-name').textContent = bizName;
+                }
                 const settingsData = {
-                    business_name: document.getElementById('setting-biz-name').value,
+                    business_name: bizName,
                     twilio_sid: document.getElementById('setting-twilio-sid').value,
                     twilio_token: document.getElementById('setting-twilio-token').value,
                     twilio_phone: document.getElementById('setting-twilio-phone').value,
@@ -646,7 +722,6 @@
                         body: JSON.stringify(settingsData)
                     });
                     document.getElementById('settings-modal').classList.add('hidden');
-                    fetchLeads();
                     alert('Settings updated successfully!');
                 } catch(e){}
             };
@@ -679,14 +754,26 @@
                 const service = document.getElementById('sim-service').value;
                 const notes = document.getElementById('sim-notes').value;
 
+                const newLead = {
+                    id: Date.now(),
+                    name, phone, service, notes,
+                    source: "Website Missed Call Form",
+                    status: "Followed Up",
+                    ai_sms_draft: `Hi ${name.split(' ')[0]}! Thanks for reaching out regarding ${service}. We received your request and can help today!`,
+                    created_at: new Date().toLocaleTimeString()
+                };
+                activeLeadsData.unshift(newLead);
+                saveStoredLeads(activeLeadsData);
+                document.getElementById('simulator-modal').classList.add('hidden');
+                calculateAndRenderStats();
+                renderLeadsList();
+
                 try {
                     await fetch('/api/webhook/lead', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, phone, service, notes, source: 'Website Form' })
                     });
-                    document.getElementById('simulator-modal').classList.add('hidden');
-                    fetchLeads();
                 } catch(e){}
             };
 
@@ -698,17 +785,19 @@
 
             document.getElementById('confirm-send-sms-btn').onclick = async () => {
                 if (selectedLeadForSMS) {
-                    const msg = document.getElementById('sms-message-text').value;
+                    selectedLeadForSMS.status = 'Followed Up';
+                    saveStoredLeads(activeLeadsData);
+                    calculateAndRenderStats();
+                    renderLeadsList();
                     try {
                         await fetch('/api/sms/send', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ lead_id: selectedLeadForSMS.id, phone: selectedLeadForSMS.phone, message: msg })
+                            body: JSON.stringify({ lead_id: selectedLeadForSMS.id, phone: selectedLeadForSMS.phone, message: document.getElementById('sms-message-text').value })
                         });
-                        document.getElementById('sms-modal').classList.add('hidden');
-                        fetchLeads();
                     } catch(e){}
                 }
+                document.getElementById('sms-modal').classList.add('hidden');
             };
 
             if (localStorage.getItem('lead_rescue_token')) {
