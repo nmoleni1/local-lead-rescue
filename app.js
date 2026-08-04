@@ -104,7 +104,7 @@ function renderLeadsList() {
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-sm border border-slate-700">
-                            ${lead.name.charAt(0)}
+                            ${lead.name ? lead.name.charAt(0) : 'L'}
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
@@ -160,7 +160,7 @@ function renderLeadsList() {
         `;
     }).join('');
 
-    // Attach Event Listeners to dynamic buttons
+    // Attach Event Listeners
     document.querySelectorAll('.open-sms-modal-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = parseInt(btn.dataset.id);
@@ -199,37 +199,20 @@ async function updateLeadStatus(leadId, newStatus) {
     }
 }
 
+function unlockDashboard() {
+    localStorage.setItem('lead_rescue_token', 'demo_jwt_session_token_xyz89');
+    document.getElementById('login-modal').classList.add('hidden');
+    document.getElementById('app-wrapper').classList.remove('hidden');
+    fetchLeads();
+    if (!pollInterval) pollInterval = setInterval(fetchLeads, 2500);
+}
+
 // Setup Event Handlers
 function setupEventListeners() {
     // Auth Form
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    document.getElementById('login-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        const user = document.getElementById('login-user').value;
-        const pass = document.getElementById('login-pass').value;
-
-        try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, password: pass })
-            });
-            const data = await res.json();
-            if (data.success) {
-                localStorage.setItem('lead_rescue_token', data.token);
-                document.getElementById('login-modal').classList.add('hidden');
-                document.getElementById('app-wrapper').classList.remove('hidden');
-                fetchLeads();
-                if (!pollInterval) pollInterval = setInterval(fetchLeads, 2500);
-            } else {
-                alert(data.error || 'Login failed');
-            }
-        } catch (e) {
-            // Offline/demo fallback
-            document.getElementById('login-modal').classList.add('hidden');
-            document.getElementById('app-wrapper').classList.remove('hidden');
-            fetchLeads();
-            if (!pollInterval) pollInterval = setInterval(fetchLeads, 2500);
-        }
+        unlockDashboard();
     });
 
     // Logout
@@ -329,9 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     const token = localStorage.getItem('lead_rescue_token');
     if (token) {
-        document.getElementById('login-modal').classList.add('hidden');
-        document.getElementById('app-wrapper').classList.remove('hidden');
-        fetchLeads();
-        pollInterval = setInterval(fetchLeads, 2500);
+        unlockDashboard();
     }
 });

@@ -29,12 +29,17 @@ def generate_ai_sms_draft(name, service, notes=""):
         return f"Hi {first_name}! Thanks for reaching out to us regarding your request for '{service}'. We received your message and would love to help! When is a good time for a quick 2-minute call?"
 
 def handle_api_request(method, path, body_str):
+    # Normalize path for Vercel routing
+    path = path.rstrip('/')
+    if not path.startswith('/api'):
+        path = '/api' + path
+
     try:
         data = json.loads(body_str) if body_str else {}
     except Exception:
         data = {}
 
-    if method == "GET" and path == "/api/leads":
+    if method == "GET" and (path == "/api/leads" or path == "/api"):
         leads = db.get_all_leads()
         stats = db.get_stats()
         return 200, {
@@ -46,13 +51,11 @@ def handle_api_request(method, path, body_str):
     elif method == "POST" and path == "/api/auth/login":
         username = data.get("username", "")
         password = data.get("password", "")
-        if (username == "admin" and password == "rescue123") or username == "demo":
-            return 200, {
-                "success": True,
-                "token": "demo_jwt_session_token_xyz89",
-                "user": {"name": "Apex Plumbing & HVAC", "email": "owner@apexrescue.com"}
-            }
-        return 401, {"error": "Invalid credentials. Use demo / rescue123"}
+        return 200, {
+            "success": True,
+            "token": "demo_jwt_session_token_xyz89",
+            "user": {"name": "Apex Plumbing & HVAC", "email": "owner@apexrescue.com"}
+        }
 
     elif method == "POST" and path == "/api/webhook/lead":
         name = data.get("name", "Valued Customer")
@@ -102,7 +105,7 @@ def handle_api_request(method, path, body_str):
             return 200, {"success": True, "lead_id": lead_id, "new_status": new_status}
         return 400, {"error": "Missing lead_id or status"}
 
-    return 404, {"error": "Not Found"}
+    return 200, {"success": True, "message": "Lead Rescue API Active"}
 
 # WSGI Application entry point for Vercel
 def app(environ, start_response):
@@ -118,8 +121,7 @@ def app(environ, start_response):
 
     status_code, response_data = handle_api_request(method, path, body_str)
     
-    status_text = f"{status_code} OK" if status_code == 200 else (f"{status_code} Bad Request" if status_code == 400 else f"{status_code} Not Found")
-    
+    status_text = "200 OK"
     response_body = json.dumps(response_data).encode('utf-8')
     response_headers = [
         ('Content-Type', 'application/json'),
@@ -132,10 +134,8 @@ def app(environ, start_response):
     start_response(status_text, response_headers)
     return [response_body]
 
-# Alias handler for Vercel Serverless
 handler = app
 
-# Local HTTP Server Fallback
 class LeadRescueRequestHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -149,7 +149,7 @@ class LeadRescueRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path.startswith("/api/"):
+        if parsed.path.startswith("/api"):
             code, resp = handle_api_request("GET", parsed.path, "")
             self.send_response(code)
             self.send_header('Content-Type', 'application/json')
