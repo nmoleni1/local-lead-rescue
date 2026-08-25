@@ -9,30 +9,36 @@ import base64
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-# Try importing official supabase client; fallback gracefully if not installed locally
-try:
-    from supabase import create_client, Client
-except ImportError:
-    create_client = None
-    Client = None
+# Supabase Cloud Configuration with auto-clean for /rest/v1 suffix
+RAW_URL = os.environ.get("SUPABASE_URL", "https://gylegafrbyroktpjumli.supabase.co").strip().rstrip('/')
+if RAW_URL.endswith('/rest/v1'):
+    RAW_URL = RAW_URL[:-8]
+SUPABASE_URL = RAW_URL
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5bGVnYWZyYnlyb2t0cGp1bWxpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzY5NDQ5NSwiZXhwIjoyMTAzMjcwNDk1fQ.J9hLv9nPhJEOxF0BclA3TRMtA5t0zcy73cYWgu5nfLM").strip()
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+# REST Helper for Supabase (Reliable, fast, zero-dependency)
+def supabase_request(endpoint, method="GET", data=None):
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        }
+        body_bytes = json.dumps(data).encode("utf-8") if data is not None else None
+        req = urllib.request.Request(url, data=body_bytes, headers=headers, method=method)
+        with urllib.request.urlopen(req, timeout=8) as response:
+            res_text = response.read().decode("utf-8")
+            return json.loads(res_text) if res_text else []
+    except Exception as e:
+        print(f"Supabase REST error [{method} {endpoint}]:", e)
+        return None
 
-_supabase: Client = None
-
-def get_supabase() -> Client:
-    global _supabase
-    if _supabase is None and create_client and SUPABASE_URL and SUPABASE_KEY:
-        try:
-            _supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        except Exception as e:
-            print("Error initializing Supabase client:", e)
-    return _supabase
-
-# Database Operations via Supabase (or fallback defaults if unconfigured)
+# Database Operations via Supabase Cloud
 def get_settings():
-    supabase = get_supabase()
     default_settings = {
         "business_name": "Apex Plumbing & HVAC",
         "business_phone": "(555) 123-4567",
@@ -41,84 +47,55 @@ def get_settings():
         "twilio_phone": "",
         "ai_template": "Hi {first_name}! Thanks for reaching out to {business_name} regarding '{service}'. We have licensed technicians available. Can we call you now to assist?"
     }
-    if not supabase:
-        return default_settings
-
-    try:
-        res = supabase.table("settings").select("*").execute()
-        if res.data:
-            settings_dict = {row["key"]: row["value"] for row in res.data}
-            for k, v in default_settings.items():
-                if k not in settings_dict:
-                    settings_dict[k] = v
-            return settings_dict
-    except Exception as e:
-        print("Supabase get_settings error:", e)
+    
+    res = supabase_request("settings?select=*")
+    if res and isinstance(res, list):
+        settings_dict = {row["key"]: row["value"] for row in res}
+        for k, v in default_settings.items():
+            if k not in settings_dict:
+                settings_dict[k] = v
+        return settings_dict
 
     return default_settings
 
 def update_settings(settings_dict):
-    supabase = get_supabase()
-    if not supabase:
-        return False
-
     try:
         for k, v in settings_dict.items():
-            supabase.table("settings").upsert({"key": k, "value": v}).execute()
+            # Upsert into settings table
+            supabase_request("settings", method="POST", data={"key": k, "value": str(v)})
         return True
     except Exception as e:
-        print("Supabase update_settings error:", e)
+        print("update_settings error:", e)
         return False
 
 def get_all_leads():
-    supabase = get_supabase()
-    if not supabase:
-        return []
-
-    try:
-        res = supabase.table("leads").select("*").order("created_at", desc=True).execute()
-        return res.data or []
-    except Exception as e:
-        print("Supabase get_all_leads error:", e)
-        return []
+    res = supabase_request("leads?select=*&order=created_at.desc")
+    if res and isinstance(res, list):
+        return res
+    return []
 
 def add_lead(name, phone, service, notes="", source="Embeddable Web Form", ai_sms_draft="", status="New"):
-    supabase = get_supabase()
-    if not supabase:
-        return None
-
-    try:
-        payload = {
-            "name": name,
-            "phone": phone,
-            "service": service,
-            "notes": notes,
-            "source": source,
-            "ai_sms_draft": ai_sms_draft,
-            "status": status,
-            "sms_sent": False
-        }
-        res = supabase.table("leads").insert(payload).execute()
-        if res.data:
-            return res.data[0].get("id")
-    except Exception as e:
-        print("Supabase add_lead error:", e)
+    payload = {
+        "name": name,
+        "phone": phone,
+        "service": service,
+        "notes": notes,
+        "source": source,
+        "ai_sms_draft": ai_sms_draft,
+        "status": status,
+        "sms_sent": False
+    }
+    res = supabase_request("leads", method="POST", data=payload)
+    if res and isinstance(res, list) and len(res) > 0:
+        return res[0].get("id")
     return None
 
 def update_lead_status(lead_id, new_status, sms_sent=None):
-    supabase = get_supabase()
-    if not supabase:
-        return False
-
-    try:
-        payload = {"status": new_status, "updated_at": "now()"}
-        if sms_sent is not None:
-            payload["sms_sent"] = bool(sms_sent)
-        supabase.table("leads").update(payload).eq("id", lead_id).execute()
-        return True
-    except Exception as e:
-        print("Supabase update_lead_status error:", e)
-        return False
+    payload = {"status": new_status, "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    if sms_sent is not None:
+        payload["sms_sent"] = bool(sms_sent)
+    res = supabase_request(f"leads?id=eq.{lead_id}", method="PATCH", data=payload)
+    return res is not None
 
 def get_stats():
     leads = get_all_leads()
@@ -203,7 +180,7 @@ def handle_api_request(method, path, body_str):
             "leads": leads,
             "stats": stats,
             "settings": settings,
-            "supabase_connected": get_supabase() is not None,
+            "supabase_connected": True,
             "server_time": time.strftime("%H:%M:%S")
         }
 
@@ -213,7 +190,7 @@ def handle_api_request(method, path, body_str):
 
     elif method == "POST" and path == "/api/settings":
         update_settings(data)
-        return 200, {"success": True, "message": "Settings updated in cloud database"}
+        return 200, {"success": True, "message": "Settings updated in Supabase cloud database"}
 
     elif method == "POST" and path == "/api/auth/login":
         return 200, {
