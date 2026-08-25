@@ -418,19 +418,6 @@
         let selectedLeadForSMS = null;
         let pollInterval = null;
 
-        function getStoredLeads() {
-            try {
-                const stored = localStorage.getItem('lead_rescue_local_leads');
-                return stored ? JSON.parse(stored) : null;
-            } catch(e) { return null; }
-        }
-
-        function saveStoredLeads(leads) {
-            try {
-                localStorage.setItem('lead_rescue_local_leads', JSON.stringify(leads));
-            } catch(e) {}
-        }
-
         function unlockDashboard() {
             localStorage.setItem('lead_rescue_token', 'demo_jwt_session_token_xyz89');
             const loginModal = document.getElementById('login-modal');
@@ -442,71 +429,24 @@
         }
 
         async function fetchLeads() {
-            let serverLeads = [];
-            let serverStats = null;
             try {
                 const res = await fetch('/api/leads');
                 const data = await res.json();
-                serverLeads = data.leads || [];
-                serverStats = data.stats;
+                activeLeadsData = data.leads || [];
+                if (data.stats) {
+                    renderStats(data.stats);
+                } else {
+                    calculateAndRenderStats();
+                }
+                renderLeadsList();
                 if (data.settings && data.settings.business_name) {
                     document.getElementById('header-biz-name').textContent = data.settings.business_name;
                 }
             } catch (e) {
-                console.error("Server leads fetch error:", e);
+                console.error("Cloud leads fetch error:", e);
+                calculateAndRenderStats();
+                renderLeadsList();
             }
-
-            const localLeads = getStoredLeads();
-            if (localLeads && localLeads.length > 0) {
-                // Merge local leads and server leads by ID / name
-                const merged = [...localLeads];
-                serverLeads.forEach(sl => {
-                    if (!merged.some(ml => ml.id === sl.id || (ml.name === sl.name && ml.phone === sl.phone))) {
-                        merged.push(sl);
-                    }
-                });
-                activeLeadsData = merged;
-            } else if (serverLeads.length > 0) {
-                activeLeadsData = serverLeads;
-                saveStoredLeads(activeLeadsData);
-            } else {
-                activeLeadsData = [
-                    {
-                        id: 1,
-                        name: "Sarah Jenkins",
-                        phone: "(555) 234-5678",
-                        service: "Emergency Plumbing - Water Heater Leak",
-                        notes: "Water heater leaking in garage, need urgent quote.",
-                        source: "Google Local Ad",
-                        status: "New",
-                        ai_sms_draft: "Hi Sarah! Thanks for reaching out to Apex Plumbing & HVAC regarding your water heater leak. Can we call you now to assist?"
-                    },
-                    {
-                        id: 2,
-                        name: "Marcus Vance",
-                        phone: "(555) 876-5432",
-                        service: "HVAC AC Repair",
-                        notes: "AC unit blowing warm air, temp is 88 degrees inside.",
-                        source: "Website Missed Call",
-                        status: "Followed Up",
-                        ai_sms_draft: "Hi Marcus! We received your request about your AC blowing warm air. Would 2:30 PM work for an inspection?"
-                    },
-                    {
-                        id: 3,
-                        name: "Elena Rodriguez",
-                        phone: "(555) 432-1098",
-                        service: "Electrical Panel Upgrade",
-                        notes: "Looking to upgrade 100A panel to 200A for EV charger installation.",
-                        source: "Yelp Direct Form",
-                        status: "Closed",
-                        ai_sms_draft: "Hi Elena! Thanks for contacting us about your 200A panel upgrade for your EV charger. We've scheduled your estimate!"
-                    }
-                ];
-                saveStoredLeads(activeLeadsData);
-            }
-
-            calculateAndRenderStats();
-            renderLeadsList();
         }
 
         function calculateAndRenderStats() {
@@ -624,11 +564,10 @@
 
             document.querySelectorAll('.update-status-btn').forEach(btn => {
                 btn.onclick = async () => {
-                    const id = parseInt(btn.dataset.id);
+                    const id = parseInt(btn.dataset.id) || btn.dataset.id;
                     const newStatus = btn.dataset.status;
-                    const item = activeLeadsData.find(l => l.id === id);
+                    const item = activeLeadsData.find(l => l.id == id);
                     if (item) item.status = newStatus;
-                    saveStoredLeads(activeLeadsData);
                     calculateAndRenderStats();
                     renderLeadsList();
                     try {
@@ -637,6 +576,7 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ lead_id: id, status: newStatus })
                         });
+                        fetchLeads();
                     } catch(e){}
                 };
             });
@@ -722,7 +662,8 @@
                         body: JSON.stringify(settingsData)
                     });
                     document.getElementById('settings-modal').classList.add('hidden');
-                    alert('Settings updated successfully!');
+                    alert('Settings updated successfully in cloud database!');
+                    fetchLeads();
                 } catch(e){}
             };
 
@@ -754,19 +695,7 @@
                 const service = document.getElementById('sim-service').value;
                 const notes = document.getElementById('sim-notes').value;
 
-                const newLead = {
-                    id: Date.now(),
-                    name, phone, service, notes,
-                    source: "Website Missed Call Form",
-                    status: "Followed Up",
-                    ai_sms_draft: `Hi ${name.split(' ')[0]}! Thanks for reaching out regarding ${service}. We received your request and can help today!`,
-                    created_at: new Date().toLocaleTimeString()
-                };
-                activeLeadsData.unshift(newLead);
-                saveStoredLeads(activeLeadsData);
                 document.getElementById('simulator-modal').classList.add('hidden');
-                calculateAndRenderStats();
-                renderLeadsList();
 
                 try {
                     await fetch('/api/webhook/lead', {
@@ -774,7 +703,10 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, phone, service, notes, source: 'Website Form' })
                     });
-                } catch(e){}
+                    fetchLeads();
+                } catch(e){
+                    console.error("Webhook submit error:", e);
+                }
             };
 
             document.querySelectorAll('.close-sms-btn').forEach(btn => {
@@ -786,7 +718,6 @@
             document.getElementById('confirm-send-sms-btn').onclick = async () => {
                 if (selectedLeadForSMS) {
                     selectedLeadForSMS.status = 'Followed Up';
-                    saveStoredLeads(activeLeadsData);
                     calculateAndRenderStats();
                     renderLeadsList();
                     try {
@@ -795,6 +726,7 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ lead_id: selectedLeadForSMS.id, phone: selectedLeadForSMS.phone, message: document.getElementById('sms-message-text').value })
                         });
+                        fetchLeads();
                     } catch(e){}
                 }
                 document.getElementById('sms-modal').classList.add('hidden');

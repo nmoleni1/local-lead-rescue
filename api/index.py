@@ -5,15 +5,139 @@ import sys
 import time
 import urllib.request
 import base64
-import db
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-db.init_db()
+# Try importing official supabase client; fallback gracefully if not installed locally
+try:
+    from supabase import create_client, Client
+except ImportError:
+    create_client = None
+    Client = None
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+
+_supabase: Client = None
+
+def get_supabase() -> Client:
+    global _supabase
+    if _supabase is None and create_client and SUPABASE_URL and SUPABASE_KEY:
+        try:
+            _supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        except Exception as e:
+            print("Error initializing Supabase client:", e)
+    return _supabase
+
+# Database Operations via Supabase (or fallback defaults if unconfigured)
+def get_settings():
+    supabase = get_supabase()
+    default_settings = {
+        "business_name": "Apex Plumbing & HVAC",
+        "business_phone": "(555) 123-4567",
+        "twilio_sid": "",
+        "twilio_token": "",
+        "twilio_phone": "",
+        "ai_template": "Hi {first_name}! Thanks for reaching out to {business_name} regarding '{service}'. We have licensed technicians available. Can we call you now to assist?"
+    }
+    if not supabase:
+        return default_settings
+
+    try:
+        res = supabase.table("settings").select("*").execute()
+        if res.data:
+            settings_dict = {row["key"]: row["value"] for row in res.data}
+            for k, v in default_settings.items():
+                if k not in settings_dict:
+                    settings_dict[k] = v
+            return settings_dict
+    except Exception as e:
+        print("Supabase get_settings error:", e)
+
+    return default_settings
+
+def update_settings(settings_dict):
+    supabase = get_supabase()
+    if not supabase:
+        return False
+
+    try:
+        for k, v in settings_dict.items():
+            supabase.table("settings").upsert({"key": k, "value": v}).execute()
+        return True
+    except Exception as e:
+        print("Supabase update_settings error:", e)
+        return False
+
+def get_all_leads():
+    supabase = get_supabase()
+    if not supabase:
+        return []
+
+    try:
+        res = supabase.table("leads").select("*").order("created_at", desc=True).execute()
+        return res.data or []
+    except Exception as e:
+        print("Supabase get_all_leads error:", e)
+        return []
+
+def add_lead(name, phone, service, notes="", source="Embeddable Web Form", ai_sms_draft="", status="New"):
+    supabase = get_supabase()
+    if not supabase:
+        return None
+
+    try:
+        payload = {
+            "name": name,
+            "phone": phone,
+            "service": service,
+            "notes": notes,
+            "source": source,
+            "ai_sms_draft": ai_sms_draft,
+            "status": status,
+            "sms_sent": False
+        }
+        res = supabase.table("leads").insert(payload).execute()
+        if res.data:
+            return res.data[0].get("id")
+    except Exception as e:
+        print("Supabase add_lead error:", e)
+    return None
+
+def update_lead_status(lead_id, new_status, sms_sent=None):
+    supabase = get_supabase()
+    if not supabase:
+        return False
+
+    try:
+        payload = {"status": new_status, "updated_at": "now()"}
+        if sms_sent is not None:
+            payload["sms_sent"] = bool(sms_sent)
+        supabase.table("leads").update(payload).eq("id", lead_id).execute()
+        return True
+    except Exception as e:
+        print("Supabase update_lead_status error:", e)
+        return False
+
+def get_stats():
+    leads = get_all_leads()
+    new_count = len([l for l in leads if l.get("status") == "New"])
+    followed_count = len([l for l in leads if l.get("status") == "Followed Up"])
+    closed_count = len([l for l in leads if l.get("status") == "Closed"])
+    total_count = len(leads)
+    conversion_rate = round((closed_count / total_count * 100.0), 1) if total_count > 0 else 0.0
+
+    return {
+        "new_leads": new_count,
+        "followed_up": followed_count,
+        "closed_jobs": closed_count,
+        "total_leads": total_count,
+        "conversion_rate": conversion_rate
+    }
 
 def send_twilio_sms(to_phone, message_text):
-    settings = db.get_settings()
+    settings = get_settings()
     sid = settings.get("twilio_sid", "").strip()
     token = settings.get("twilio_token", "").strip()
     from_phone = settings.get("twilio_phone", "").strip()
@@ -42,7 +166,7 @@ def send_twilio_sms(to_phone, message_text):
     return True, "Mock Sandbox Mode (Twilio credentials pending)"
 
 def generate_ai_sms_draft(name, service, notes=""):
-    settings = db.get_settings()
+    settings = get_settings()
     biz_name = settings.get("business_name", "Apex Services")
     template = settings.get("ai_template", "")
 
@@ -72,23 +196,24 @@ def handle_api_request(method, path, body_str):
         data = {}
 
     if method == "GET" and (path == "/api/leads" or path == "/api"):
-        leads = db.get_all_leads()
-        stats = db.get_stats()
-        settings = db.get_settings()
+        leads = get_all_leads()
+        stats = get_stats()
+        settings = get_settings()
         return 200, {
             "leads": leads,
             "stats": stats,
             "settings": settings,
+            "supabase_connected": get_supabase() is not None,
             "server_time": time.strftime("%H:%M:%S")
         }
 
     elif method == "GET" and path == "/api/settings":
-        settings = db.get_settings()
+        settings = get_settings()
         return 200, {"settings": settings}
 
     elif method == "POST" and path == "/api/settings":
-        db.update_settings(data)
-        return 200, {"success": True, "message": "Settings updated successfully"}
+        update_settings(data)
+        return 200, {"success": True, "message": "Settings updated in cloud database"}
 
     elif method == "POST" and path == "/api/auth/login":
         return 200, {
@@ -105,18 +230,19 @@ def handle_api_request(method, path, body_str):
         source = data.get("source", "Embeddable Web Form")
 
         ai_sms_draft = generate_ai_sms_draft(name, service, notes)
-        new_id = db.add_lead(name, phone, service, notes, source, ai_sms_draft, status="New")
+        new_id = add_lead(name, phone, service, notes, source, ai_sms_draft, status="New")
 
         auto_send = data.get("auto_send_sms", True)
         sms_status = "Not Sent"
         if auto_send:
             success, sid_log = send_twilio_sms(phone, ai_sms_draft)
-            db.update_lead_status(new_id, "Followed Up", sms_sent=True)
+            if new_id:
+                update_lead_status(new_id, "Followed Up", sms_sent=True)
             sms_status = sid_log
 
         return 200, {
             "success": True,
-            "message": "Lead captured & automated initial SMS response sent!",
+            "message": "Lead captured & saved to Supabase cloud database!",
             "lead_id": new_id,
             "ai_sms_draft": ai_sms_draft,
             "sms_dispatch": sms_status,
@@ -137,7 +263,7 @@ def handle_api_request(method, path, body_str):
         
         success, sid_log = send_twilio_sms(phone, message)
         if lead_id:
-            db.update_lead_status(lead_id, "Followed Up", sms_sent=True)
+            update_lead_status(lead_id, "Followed Up", sms_sent=True)
             
         return 200, {
             "success": True,
@@ -150,7 +276,7 @@ def handle_api_request(method, path, body_str):
         lead_id = data.get("lead_id")
         new_status = data.get("status")
         if lead_id and new_status:
-            db.update_lead_status(lead_id, new_status)
+            update_lead_status(lead_id, new_status)
             return 200, {"success": True, "lead_id": lead_id, "new_status": new_status}
         return 400, {"error": "Missing lead_id or status"}
 
