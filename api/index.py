@@ -69,12 +69,15 @@ def update_settings(settings_dict):
         return False
 
 def get_all_leads():
+    """Fetch all leads newest-first, including address & preferred_window columns."""
     res = supabase_request("leads?select=*&order=created_at.desc")
     if res and isinstance(res, list):
         return res
     return []
 
-def add_lead(name, phone, service, notes="", source="Embeddable Web Form", ai_sms_draft="", status="New"):
+def add_lead(name, phone, service, notes="", source="Embeddable Web Form",
+             ai_sms_draft="", status="New", address="", preferred_window="Flexible", call_sid=None):
+    """Insert a new lead. address and preferred_window support the Voice AI Receptionist flow."""
     payload = {
         "name": name,
         "phone": phone,
@@ -83,11 +86,30 @@ def add_lead(name, phone, service, notes="", source="Embeddable Web Form", ai_sm
         "source": source,
         "ai_sms_draft": ai_sms_draft,
         "status": status,
-        "sms_sent": False
+        "sms_sent": False,
+        "address": address,
+        "preferred_window": preferred_window,
     }
+    if call_sid:
+        payload["call_sid"] = call_sid
     res = supabase_request("leads", method="POST", data=payload)
     if res and isinstance(res, list) and len(res) > 0:
         return res[0].get("id")
+
+    # Resilient fallback if custom columns (address, preferred_window) aren't migrated in PostgreSQL yet
+    fallback_payload = {
+        "name": name,
+        "phone": phone,
+        "service": service,
+        "notes": f"{notes} | Window: {preferred_window} | Address: {address}".strip(" |"),
+        "source": source,
+        "ai_sms_draft": ai_sms_draft,
+        "status": status,
+        "sms_sent": False
+    }
+    fb_res = supabase_request("leads", method="POST", data=fallback_payload)
+    if fb_res and isinstance(fb_res, list) and len(fb_res) > 0:
+        return fb_res[0].get("id")
     return None
 
 def update_lead_status(lead_id, new_status, sms_sent=None):
@@ -112,6 +134,43 @@ def get_stats():
         "total_leads": total_count,
         "conversion_rate": conversion_rate
     }
+
+def log_call(call_sid, from_number, to_number, duration=0, transcript="", recording_url="", status="completed"):
+    """Insert a Twilio call record into the calls table."""
+    payload = {
+        "call_sid": str(call_sid),
+        "from_number": from_number,
+        "to_number": to_number,
+        "duration": int(duration),
+        "transcript": transcript,
+        "recording_url": recording_url,
+        "status": status
+    }
+    res = supabase_request("calls", method="POST", data=payload)
+    if res and isinstance(res, list) and len(res) > 0:
+        return res[0].get("id")
+    return None
+
+def add_message(lead_id, from_number, to_number, direction, body):
+    """Insert a threaded SMS message. direction must be 'inbound' or 'outbound'."""
+    payload = {
+        "lead_id": lead_id,
+        "from_number": from_number,
+        "to_number": to_number,
+        "direction": direction,
+        "body": body
+    }
+    res = supabase_request("messages", method="POST", data=payload)
+    if res and isinstance(res, list) and len(res) > 0:
+        return res[0].get("id")
+    return None
+
+def get_messages_for_lead(lead_id):
+    """Return all messages for a lead ordered ascending by time."""
+    res = supabase_request(f"messages?lead_id=eq.{lead_id}&order=created_at.asc&select=*")
+    if res and isinstance(res, list):
+        return res
+    return []
 
 def send_twilio_sms(to_phone, message_text):
     settings = get_settings()
@@ -206,8 +265,12 @@ def handle_api_request(method, path, body_str):
         notes = data.get("notes", "Submitted via lead form.")
         source = data.get("source", "Embeddable Web Form")
 
+        address = data.get("address", "")
+        preferred_window = data.get("preferred_window", "Flexible")
+
         ai_sms_draft = generate_ai_sms_draft(name, service, notes)
-        new_id = add_lead(name, phone, service, notes, source, ai_sms_draft, status="New")
+        new_id = add_lead(name, phone, service, notes, source, ai_sms_draft, status="New",
+                          address=address, preferred_window=preferred_window)
 
         auto_send = data.get("auto_send_sms", True)
         sms_status = "Not Sent"
@@ -257,22 +320,220 @@ def handle_api_request(method, path, body_str):
             return 200, {"success": True, "lead_id": lead_id, "new_status": new_status}
         return 400, {"error": "Missing lead_id or status"}
 
+    # ── Task 2: Voice AI Receptionist ────────────────────────────────────────
+
+    elif method == "POST" and path == "/api/voice/inbound":
+        # Twilio calls this when a call arrives on the contractor's LeadRescue number.
+        # Respond with TwiML that greets the caller and starts speech gathering.
+        settings = get_settings()
+        biz_name = settings.get("business_name", "our team")
+        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="speech" action="/api/voice/gather" method="POST" speechTimeout="auto" language="en-US">
+    <Say voice="Polly.Joanna">
+      Hi there! Thanks for calling {biz_name}. I'm the automated dispatch assistant.
+      Please briefly describe what you need help with today, and I'll get a technician on the way for you.
+    </Say>
+  </Gather>
+  <Say voice="Polly.Joanna">I didn't catch that. Please hold and we will call you right back!</Say>
+</Response>"""
+        return 200, {"response_type": "twiml", "twiml": twiml}
+
+    elif method == "POST" and path == "/api/voice/gather":
+        # Twilio posts the caller's transcribed speech here.
+        # We extract name/service/window from the transcript, create a lead, and confirm.
+        call_sid = data.get("CallSid", "")
+        from_number = data.get("From", "Unknown")
+        to_number = data.get("To", "")
+        speech_result = data.get("SpeechResult", "")
+        settings = get_settings()
+        biz_name = settings.get("business_name", "our team")
+
+        # Classify urgency window from speech
+        speech_lower = speech_result.lower()
+        if any(w in speech_lower for w in ["emergency", "urgent", "asap", "flooding", "leak", "no heat", "no ac", "now"]):
+            preferred_window = "Emergency ASAP"
+            window_msg = "We're treating your request as an emergency and will have a technician dispatched within 2 to 4 hours."
+        elif any(w in speech_lower for w in ["morning", "tomorrow morning", "8", "9", "10", "11"]):
+            preferred_window = "Morning Window (8AM-12PM)"
+            window_msg = "I've booked you in for a morning visit between 8 AM and noon. A technician will confirm their arrival time shortly."
+        elif any(w in speech_lower for w in ["afternoon", "1", "2", "3", "4"]):
+            preferred_window = "Afternoon Window (12PM-4PM)"
+            window_msg = "I've booked you in for an afternoon visit between noon and 4 PM. A technician will confirm shortly."
+        else:
+            preferred_window = "Flexible"
+            window_msg = "A technician will call you back shortly to schedule your appointment."
+
+        # Determine service type from speech
+        if any(w in speech_lower for w in ["plumb", "leak", "drain", "pipe", "water", "sewer"]):
+            service = "Plumbing Service"
+        elif any(w in speech_lower for w in ["hvac", "ac", "heat", "furnace", "air", "cool"]):
+            service = "HVAC / AC Service"
+        elif any(w in speech_lower for w in ["electr", "outlet", "panel", "wiring", "breaker"]):
+            service = "Electrical Service"
+        elif any(w in speech_lower for w in ["roof", "gutter", "leak roof", "shingle"]):
+            service = "Roofing Service"
+        else:
+            service = "General Service Request"
+
+        # Create lead from voice call
+        ai_sms = f"Hi! Thanks for calling {biz_name}. We captured your request for {service}. {window_msg}"
+        new_id = add_lead(
+            name="Caller",
+            phone=from_number,
+            service=service,
+            notes=f"Voice call transcript: {speech_result}",
+            source="Voice AI Receptionist",
+            ai_sms_draft=ai_sms,
+            status="New",
+            preferred_window=preferred_window,
+            call_sid=call_sid
+        )
+        log_call(call_sid=call_sid, from_number=from_number, to_number=to_number,
+                 transcript=speech_result, status="completed")
+
+        # Push instant SMS alert to contractor
+        contractor_mobile = settings.get("contractor_mobile", "")
+        if contractor_mobile:
+            alert = f"🚨 Voice Lead: {from_number} called about {service}. Window: {preferred_window}. Transcript: \"{speech_result[:100]}\". Tap to call: {from_number}"
+            send_twilio_sms(contractor_mobile, alert)
+
+        twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Joanna">
+    Great! I've logged your service request and a technician from {biz_name} will be in touch shortly to confirm your appointment.
+    {window_msg}
+    Have a great day!
+  </Say>
+  <Hangup/>
+</Response>"""
+        return 200, {"response_type": "twiml", "twiml": twiml, "lead_id": new_id}
+
+    elif method == "POST" and path == "/api/voice/status":
+        # Twilio status callback — handles missed calls (no-answer / busy / failed).
+        call_status = data.get("CallStatus", "")
+        from_number = data.get("From", "")
+        call_sid = data.get("CallSid", "")
+        to_number = data.get("To", "")
+        settings = get_settings()
+        biz_name = settings.get("business_name", "our team")
+
+        if call_status in ("no-answer", "busy", "failed", "canceled"):
+            # Missed call — fire auto-text to the caller immediately
+            missed_call_msg = (
+                f"Hi! This is {biz_name}. I just missed your call and I don't want to leave you hanging! "
+                f"How can I help you today? Reply with what you need and I'll get someone out to you fast."
+            )
+            send_twilio_sms(from_number, missed_call_msg)
+
+            # Log a lead for the missed call
+            add_lead(
+                name="Missed Call",
+                phone=from_number,
+                service="Unknown (Missed Call)",
+                notes=f"Missed call. Status: {call_status}. Auto-text sent.",
+                source="Missed Call Auto-Text",
+                ai_sms_draft=missed_call_msg,
+                status="New",
+                call_sid=call_sid
+            )
+            log_call(call_sid=call_sid, from_number=from_number, to_number=to_number,
+                     status=call_status, transcript="", recording_url="")
+
+        return 200, {"success": True, "call_status": call_status}
+
+    # ── Task 3: 2-Way SMS Inbound Webhook ────────────────────────────────────
+
+    elif method == "POST" and path == "/api/sms/inbound":
+        # Twilio posts here when a homeowner texts the business number.
+        from_number = data.get("From", "")
+        to_number = data.get("To", "")
+        body = data.get("Body", "").strip()
+        settings = get_settings()
+        biz_name = settings.get("business_name", "our team")
+        contractor_mobile = settings.get("contractor_mobile", "")
+
+        # Find or create a lead for this number
+        existing_leads = get_all_leads()
+        matched_lead = next((l for l in existing_leads if l.get("phone") == from_number), None)
+
+        if matched_lead:
+            lead_id = matched_lead.get("id")
+            # Append inbound message to thread
+            add_message(lead_id=lead_id, from_number=from_number, to_number=to_number,
+                        direction="inbound", body=body)
+        else:
+            # New contact via SMS — create lead
+            ai_draft = generate_ai_sms_draft("there", body)
+            lead_id = add_lead(
+                name="SMS Contact",
+                phone=from_number,
+                service=body[:80],
+                notes=f"Initial inbound SMS: {body}",
+                source="Direct SMS",
+                ai_sms_draft=ai_draft,
+                status="New"
+            )
+            add_message(lead_id=lead_id, from_number=from_number, to_number=to_number,
+                        direction="inbound", body=body)
+
+        # Auto-acknowledge the homeowner
+        ack_msg = f"Got it! Thanks for texting {biz_name}. A technician will follow up shortly."
+        send_twilio_sms(from_number, ack_msg)
+        if lead_id:
+            add_message(lead_id=lead_id, from_number=to_number, to_number=from_number,
+                        direction="outbound", body=ack_msg)
+
+        # Push instant SMS alert to contractor
+        if contractor_mobile:
+            alert = f"💬 New SMS from {from_number}: \"{body[:120]}\". Lead ID: {lead_id}. Tap to reply: {from_number}"
+            send_twilio_sms(contractor_mobile, alert)
+
+        # Respond to Twilio with empty TwiML (we already sent via REST)
+        return 200, {"success": True, "lead_id": lead_id}
+
+    elif method == "GET" and path == "/api/messages":
+        lead_id = body_str  # fallback
+        return 200, {"messages": []}
+
     return 200, {"success": True, "message": "Lead Rescue API Active"}
 
 def app(environ, start_response):
     path = environ.get('PATH_INFO', '')
     method = environ.get('REQUEST_METHOD', 'GET')
-    
+
+    # Handle Twilio form-encoded payloads (voice/SMS webhooks use application/x-www-form-urlencoded)
+    content_type = environ.get('CONTENT_TYPE', '')
     try:
         request_body_size = int(environ.get('CONTENT_LENGTH', 0))
     except (ValueError):
         request_body_size = 0
 
-    body_str = environ['wsgi.input'].read(request_body_size).decode('utf-8') if request_body_size > 0 else ""
+    raw_body = environ['wsgi.input'].read(request_body_size).decode('utf-8') if request_body_size > 0 else ""
+
+    # Parse form-encoded body into dict for Twilio webhooks
+    if 'application/x-www-form-urlencoded' in content_type and raw_body:
+        try:
+            parsed = urllib.parse.parse_qs(raw_body, keep_blank_values=True)
+            body_str = json.dumps({k: v[0] for k, v in parsed.items()})
+        except Exception:
+            body_str = raw_body
+    else:
+        body_str = raw_body
 
     status_code, response_data = handle_api_request(method, path, body_str)
-    
-    status_text = "200 OK"
+
+    # Voice endpoints return TwiML XML — detect and serve accordingly
+    if isinstance(response_data, dict) and response_data.get("response_type") == "twiml":
+        twiml_body = response_data.get("twiml", "<Response/>").encode("utf-8")
+        response_headers = [
+            ('Content-Type', 'text/xml; charset=utf-8'),
+            ('Content-Length', str(len(twiml_body))),
+            ('Access-Control-Allow-Origin', '*'),
+        ]
+        start_response("200 OK", response_headers)
+        return [twiml_body]
+
     response_body = json.dumps(response_data).encode('utf-8')
     response_headers = [
         ('Content-Type', 'application/json'),
@@ -281,8 +542,8 @@ def app(environ, start_response):
         ('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS'),
         ('Access-Control-Allow-Headers', 'Content-Type')
     ]
-
-    start_response(status_text, response_headers)
+    start_response("200 OK", response_headers)
     return [response_body]
 
 handler = app
+

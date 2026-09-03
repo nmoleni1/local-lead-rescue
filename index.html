@@ -343,26 +343,39 @@
                 </button>
             </div>
 
-            <p class="text-xs text-slate-400">Simulate receiving a missed call or website lead form submission to test instant AI SMS follow-up execution.</p>
+            <div class="flex border-b border-slate-800 text-xs font-semibold">
+                <button type="button" id="sim-tab-web" class="flex-1 py-2 text-brand-400 border-b-2 border-brand-500 pb-2">
+                    <i class="fa-solid fa-globe mr-1.5"></i> Web Form / SMS
+                </button>
+                <button type="button" id="sim-tab-voice" class="flex-1 py-2 text-slate-400 hover:text-slate-200 pb-2">
+                    <i class="fa-solid fa-phone-volume text-blue-400 mr-1.5"></i> 🎙️ Voice AI Call
+                </button>
+            </div>
 
+            <!-- Tab 1: Web Form / SMS Simulator -->
             <form id="simulator-form" class="space-y-3">
+                <p class="text-xs text-slate-400">Simulate receiving a website lead form or missed call to test instant AI SMS dispatch.</p>
                 <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">Customer Full Name</label>
                     <input type="text" id="sim-name" value="David Miller" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">Phone Number</label>
-                    <input type="text" id="sim-phone" value="(555) 912-3456" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">
+                    <input type="text" id="sim-phone" value="(801) 555-3456" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">Service Requested</label>
                     <input type="text" id="sim-service" value="Emergency Drain Unclogging & Inspection" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">
                 </div>
                 <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Street Address (Optional)</label>
+                    <input type="text" id="sim-address" value="3850 S 2700 W, West Valley City" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-slate-300 mb-1">Lead Notes / Context</label>
                     <textarea id="sim-notes" rows="2" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">Kitchen sink backing up, need help today.</textarea>
                 </div>
-                <div class="flex items-center gap-2 pt-2">
+                <div class="flex items-center gap-2 pt-1">
                     <input type="checkbox" id="sim-autosend" checked class="w-4 h-4 rounded accent-brand-500">
                     <label for="sim-autosend" class="text-xs text-slate-300 font-medium">Automatically dispatch AI-generated SMS text immediately</label>
                 </div>
@@ -371,6 +384,32 @@
                     <button type="button" class="close-sim-btn px-4 py-2 bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold rounded-xl">Cancel</button>
                     <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-brand-600/30 flex items-center gap-2">
                         <i class="fa-solid fa-bolt"></i> Ingest Lead Webhook
+                    </button>
+                </div>
+            </form>
+
+            <!-- Tab 2: Voice AI Call Simulator -->
+            <form id="voice-simulator-form" class="space-y-3 hidden">
+                <p class="text-xs text-slate-400">Simulate a homeowner calling the business line and speaking to the Voice AI Receptionist.</p>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Caller Phone Number</label>
+                    <input type="text" id="sim-voice-phone" value="(801) 555-0199" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">What the Caller Says (Speech Transcript)</label>
+                    <textarea id="sim-voice-speech" rows="3" required class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 font-mono">Hi! I have an emergency water leak in my basement at 3400 South West Valley. Can you send someone out right away?</textarea>
+                    <p class="text-[11px] text-slate-500 mt-1">Try keywords like: <code class="text-red-400">emergency</code>, <code class="text-amber-300">morning</code>, <code class="text-sky-300">afternoon</code></p>
+                </div>
+
+                <div class="p-3 bg-blue-950/20 border border-blue-500/20 rounded-xl text-xs text-slate-300 space-y-1">
+                    <p class="font-semibold text-blue-400"><i class="fa-solid fa-robot mr-1"></i> Voice AI Automated Handling</p>
+                    <p class="text-slate-400 text-[11px]">The AI will automatically transcribe speech, classify urgency into arrival windows (Emergency ASAP / Morning / Afternoon), generate dispatch ticket, and send contractor SMS alert.</p>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3">
+                    <button type="button" class="close-sim-btn px-4 py-2 bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold rounded-xl">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-blue-600/30 flex items-center gap-2">
+                        <i class="fa-solid fa-phone-volume"></i> Simulate Voice AI Call
                     </button>
                 </div>
             </form>
@@ -492,6 +531,20 @@
                     statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20"><i class="fa-solid fa-award mr-1"></i> CLOSED JOB</span>`;
                 }
 
+                let windowBadge = '';
+                const pw = lead.preferred_window || '';
+                if (pw.includes('Emergency')) {
+                    windowBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse"><i class="fa-solid fa-triangle-exclamation mr-1"></i> EMERGENCY ASAP</span>`;
+                } else if (pw.includes('Morning')) {
+                    windowBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30"><i class="fa-solid fa-sun mr-1"></i> MORNING (8AM-12PM)</span>`;
+                } else if (pw.includes('Afternoon')) {
+                    windowBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30"><i class="fa-solid fa-cloud-sun mr-1"></i> AFTERNOON (12PM-4PM)</span>`;
+                } else if (pw && pw !== 'Flexible') {
+                    windowBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700"><i class="fa-regular fa-clock mr-1"></i> ${pw}</span>`;
+                }
+
+                const addressDisplay = lead.address ? `<span>&bull;</span><span class="text-amber-400/90 font-medium"><i class="fa-solid fa-location-dot text-amber-400 mr-1"></i>${lead.address}</span>` : '';
+
                 return `
                     <div class="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 sm:p-5 transition shadow-lg space-y-4">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
@@ -500,14 +553,16 @@
                                     ${lead.name ? lead.name.charAt(0) : 'L'}
                                 </div>
                                 <div>
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex flex-wrap items-center gap-2">
                                         <h3 class="font-bold text-base text-white">${lead.name}</h3>
                                         ${statusBadge}
+                                        ${windowBadge}
                                     </div>
-                                    <p class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                                    <p class="text-xs text-slate-400 flex flex-wrap items-center gap-2 mt-0.5">
                                         <span><i class="fa-solid fa-phone text-slate-500 mr-1"></i>${lead.phone}</span>
                                         <span>&bull;</span>
                                         <span><i class="fa-solid fa-globe text-slate-500 mr-1"></i>${lead.source}</span>
+                                        ${addressDisplay}
                                     </p>
                                 </div>
                             </div>
@@ -687,12 +742,34 @@
                 };
             });
 
-            // Simulator Submit
+            // Simulator Tab Switching
+            const simTabWeb = document.getElementById('sim-tab-web');
+            const simTabVoice = document.getElementById('sim-tab-voice');
+            const simFormWeb = document.getElementById('simulator-form');
+            const simFormVoice = document.getElementById('voice-simulator-form');
+
+            if (simTabWeb && simTabVoice) {
+                simTabWeb.onclick = () => {
+                    simTabWeb.className = 'flex-1 py-2 text-brand-400 border-b-2 border-brand-500 pb-2';
+                    simTabVoice.className = 'flex-1 py-2 text-slate-400 hover:text-slate-200 pb-2';
+                    simFormWeb.classList.remove('hidden');
+                    simFormVoice.classList.add('hidden');
+                };
+                simTabVoice.onclick = () => {
+                    simTabVoice.className = 'flex-1 py-2 text-blue-400 border-b-2 border-blue-500 pb-2';
+                    simTabWeb.className = 'flex-1 py-2 text-slate-400 hover:text-slate-200 pb-2';
+                    simFormVoice.classList.remove('hidden');
+                    simFormWeb.classList.add('hidden');
+                };
+            }
+
+            // Web Form Simulator Submit
             document.getElementById('simulator-form').onsubmit = async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('sim-name').value;
                 const phone = document.getElementById('sim-phone').value;
                 const service = document.getElementById('sim-service').value;
+                const address = document.getElementById('sim-address') ? document.getElementById('sim-address').value : '';
                 const notes = document.getElementById('sim-notes').value;
 
                 document.getElementById('simulator-modal').classList.add('hidden');
@@ -701,13 +778,47 @@
                     await fetch('/api/webhook/lead', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, phone, service, notes, source: 'Website Form' })
+                        body: JSON.stringify({ name, phone, service, address, notes, source: 'Website Form' })
                     });
                     fetchLeads();
                 } catch(e){
                     console.error("Webhook submit error:", e);
                 }
             };
+
+            // Voice AI Call Simulator Submit
+            if (simFormVoice) {
+                simFormVoice.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const phone = document.getElementById('sim-voice-phone').value;
+                    const speech = document.getElementById('sim-voice-speech').value;
+
+                    document.getElementById('simulator-modal').classList.add('hidden');
+
+                    try {
+                        const res = await fetch('/api/voice/gather', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                From: phone,
+                                To: '(801) 555-0100',
+                                SpeechResult: speech,
+                                CallSid: 'SIM_' + Date.now()
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.twiml) {
+                            // Extract spoken response from Say tag for friendly feedback
+                            const match = data.twiml.match(/<Say[^>]*>([\s\S]*?)<\/Say>/i);
+                            const spokenText = match ? match[1].replace(/\s+/g, ' ').trim() : 'Call processed by Voice AI!';
+                            alert(`🎙️ Voice AI Receptionist Dispatched!\n\nAI Response:\n"${spokenText}"`);
+                        }
+                        fetchLeads();
+                    } catch(e) {
+                        console.error("Voice simulator submit error:", e);
+                    }
+                };
+            }
 
             document.querySelectorAll('.close-sms-btn').forEach(btn => {
                 btn.onclick = () => {
