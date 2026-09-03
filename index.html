@@ -105,79 +105,220 @@
         <!-- Main Content Body -->
         <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
 
-            <!-- KPI Stats Header Cards -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
-                        <span>NEW LEADS</span>
-                        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                            <i class="fa-solid fa-user-plus"></i>
+            <!-- 3-Tab Contractor Navigation Bar -->
+            <div class="flex items-center justify-center p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl max-w-xl mx-auto shadow-xl">
+                <button id="view-tab-inbox" class="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-brand-600 text-white shadow-md shadow-brand-600/30">
+                    <i class="fa-solid fa-inbox"></i> Live Inbox
+                </button>
+                <button id="view-tab-roi" class="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-sack-dollar text-emerald-400"></i> Rescued ROI
+                </button>
+                <button id="view-tab-controls" class="flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-sliders text-blue-400"></i> Quick Controls
+                </button>
+            </div>
+
+            <!-- PANEL 1: LIVE INBOX -->
+            <div id="panel-inbox" class="space-y-6">
+                <!-- Rescued Revenue Quick Banner -->
+                <div class="relative overflow-hidden bg-gradient-to-r from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/40 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>Live Rescued Revenue</span>
                         </div>
+                        <div class="flex items-baseline gap-3">
+                            <span class="text-3xl sm:text-4xl font-black text-white tracking-tight" id="banner-rescued-dollars">$0</span>
+                            <span class="text-xs text-emerald-300 font-extrabold bg-emerald-500/20 px-2.5 py-1 rounded-full border border-emerald-500/30" id="banner-roi-multiple">0x ROI</span>
+                        </div>
+                        <p class="text-xs text-slate-400"><span id="banner-rescued-count" class="text-white font-bold">0</span> leads rescued from missed calls & voice calls this month</p>
                     </div>
-                    <div class="text-2xl sm:text-3xl font-extrabold text-white mt-2" id="kpi-new-leads">0</div>
-                    <p class="text-[11px] text-slate-500 mt-1">Awaiting customer response</p>
+                    <div class="flex items-center gap-2">
+                        <button id="quick-view-roi-btn" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-chart-pie"></i> View ROI Breakdown
+                        </button>
+                    </div>
                 </div>
 
-                <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
-                        <span>FOLLOWED UP</span>
-                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
-                            <i class="fa-solid fa-comment-sms"></i>
+                <!-- KPI Stats Header Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                        <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                            <span>NEW LEADS</span>
+                            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                                <i class="fa-solid fa-user-plus"></i>
+                            </div>
                         </div>
+                        <div class="text-2xl sm:text-3xl font-extrabold text-white mt-2" id="kpi-new-leads">0</div>
+                        <p class="text-[11px] text-slate-500 mt-1">Awaiting customer response</p>
                     </div>
-                    <div class="text-2xl sm:text-3xl font-extrabold text-white mt-2" id="kpi-followed-up">0</div>
-                    <p class="text-[11px] text-slate-500 mt-1">AI SMS sent automatically</p>
+
+                    <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                        <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                            <span>FOLLOWED UP</span>
+                            <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                                <i class="fa-solid fa-comment-sms"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-extrabold text-white mt-2" id="kpi-followed-up">0</div>
+                        <p class="text-[11px] text-slate-500 mt-1">AI SMS / Voice ticket active</p>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                        <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                            <span>CLOSED JOBS</span>
+                            <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-extrabold text-white mt-2" id="kpi-closed-jobs">0</div>
+                        <p class="text-[11px] text-slate-500 mt-1">Converted into paid jobs</p>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                        <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
+                            <span>CONVERSION RATE</span>
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-extrabold text-brand-400 mt-2" id="kpi-conversion-rate">0%</div>
+                        <p class="text-[11px] text-slate-500 mt-1">Lead to closed job rate</p>
+                    </div>
                 </div>
 
-                <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
-                        <span>CLOSED JOBS</span>
-                        <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
+                <!-- Pipeline Filter Tabs & Search -->
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                        <button class="filter-tab active px-4 py-2 rounded-lg text-xs font-semibold text-white bg-slate-800 border border-slate-700 transition" data-status="ALL">
+                            All Leads (<span id="count-all">0</span>)
+                        </button>
+                        <button class="filter-tab px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-status="New">
+                            New (<span id="count-new">0</span>)
+                        </button>
+                        <button class="filter-tab px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-status="Followed Up">
+                            Followed Up (<span id="count-followed">0</span>)
+                        </button>
+                        <button class="filter-tab px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-status="Closed">
+                            Closed Jobs (<span id="count-closed">0</span>)
+                        </button>
                     </div>
-                    <div class="text-2xl sm:text-3xl font-extrabold text-white mt-2" id="kpi-closed-jobs">0</div>
-                    <p class="text-[11px] text-slate-500 mt-1">Converted into paid clients</p>
+
+                    <div class="text-xs text-slate-400 px-3 py-1 flex items-center gap-2">
+                        <i class="fa-solid fa-arrows-rotate animate-spin text-brand-400"></i>
+                        <span>Live Sync Active</span>
+                    </div>
                 </div>
 
-                <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                    <div class="flex justify-between items-center text-slate-400 text-xs font-medium">
-                        <span>CONVERSION RATE</span>
-                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                            <i class="fa-solid fa-chart-line"></i>
-                        </div>
-                    </div>
-                    <div class="text-2xl sm:text-3xl font-extrabold text-brand-400 mt-2" id="kpi-conversion-rate">0%</div>
-                    <p class="text-[11px] text-slate-500 mt-1">Lead to job conversion</p>
+                <!-- Leads Pipeline Feed -->
+                <div class="space-y-3" id="leads-container">
+                    <!-- Dynamically populated via JS -->
                 </div>
             </div>
 
-            <!-- Pipeline Filter Tabs & Search -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
-                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                    <button class="filter-tab active px-4 py-2 rounded-lg text-xs font-semibold text-white bg-slate-800 border border-slate-700 transition" data-status="ALL">
-                        All Leads (<span id="count-all">0</span>)
-                    </button>
-                    <button class="filter-tab px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-status="New">
-                        New (<span id="count-new">0</span>)
-                    </button>
-                    <button class="filter-tab px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-status="Followed Up">
-                        Followed Up (<span id="count-followed">0</span>)
-                    </button>
-                    <button class="filter-tab px-4 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition" data-status="Closed">
-                        Closed Jobs (<span id="count-closed">0</span>)
-                    </button>
-                </div>
+            <!-- PANEL 2: RESCUED REVENUE & ROI TRACKER -->
+            <div id="panel-roi" class="space-y-6 hidden">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+                    <div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            FINANCIAL ROI CALCULATOR
+                        </span>
+                        <h3 class="text-2xl font-extrabold text-white mt-3 flex items-center gap-2">
+                            <i class="fa-solid fa-sack-dollar text-emerald-400"></i> Rescued Revenue & Investment Return
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1">Real-time revenue rescued from missed calls and unattended leads across West Valley City.</p>
+                    </div>
 
-                <div class="text-xs text-slate-400 px-3 py-1 flex items-center gap-2">
-                    <i class="fa-solid fa-arrows-rotate animate-spin text-brand-400"></i>
-                    <span>Live Syncing Webhook Endpoint</span>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-2">
+                            <span class="text-xs text-slate-400 font-medium">Estimated Revenue Saved</span>
+                            <div class="text-3xl font-black text-emerald-400" id="roi-total-revenue">$0</div>
+                            <p class="text-[11px] text-slate-500">Based on your average ticket price</p>
+                        </div>
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-2">
+                            <span class="text-xs text-slate-400 font-medium">Subscription Cost vs Return</span>
+                            <div class="text-3xl font-black text-brand-400" id="roi-multiplier">0x ROI</div>
+                            <p class="text-[11px] text-slate-500">Compared to $99/mo Starter Plan</p>
+                        </div>
+                        <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-2">
+                            <span class="text-xs text-slate-400 font-medium">Total Rescued Leads</span>
+                            <div class="text-3xl font-black text-white" id="roi-lead-count">0</div>
+                            <p class="text-[11px] text-slate-500">Qualified by Voice AI & Auto-Text</p>
+                        </div>
+                    </div>
+
+                    <!-- Average Ticket Price Adjustment Slider -->
+                    <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Calibrate Your Average Job Ticket Size</h4>
+                                <p class="text-xs text-slate-400">Adjust to match your business pricing (e.g. $850 Plumbing / $1,200 HVAC)</p>
+                            </div>
+                            <span class="text-lg font-extrabold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20" id="avg-job-display">$850</span>
+                        </div>
+                        <input type="range" id="avg-job-slider" min="300" max="3000" step="50" value="850" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        <div class="flex justify-between text-[11px] text-slate-500 font-mono">
+                            <span>$300 (Handyman)</span>
+                            <span>$850 (Standard Plumbing)</span>
+                            <span>$1,500 (HVAC Repair)</span>
+                            <span>$3,000 (Full Replacement)</span>
+                        </div>
+                    </div>
+
+                    <!-- Local Value Proposition Box -->
+                    <div class="p-5 bg-gradient-to-r from-blue-950/40 to-slate-950 border border-blue-500/20 rounded-xl space-y-2">
+                        <h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-location-dot"></i> Why This Matters in West Valley City, UT
+                        </h4>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            When a homeowner in West Valley searches Google for a contractor, 82% call the first 2 listings. If they reach a voicemail, 9 out of 10 hang up and immediately dial your competitor on Redwood Road. Rescuing even <strong>ONE</strong> single job per month pays for LeadRescue AI for an entire year.
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Leads Pipeline Feed -->
-            <div class="space-y-3" id="leads-container">
-                <!-- Dynamically populated via JS -->
+            <!-- PANEL 3: QUICK CONTROLS -->
+            <div id="panel-controls" class="space-y-6 hidden">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+                    <div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            FIELD CONTROLS
+                        </span>
+                        <h3 class="text-2xl font-extrabold text-white mt-3 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i> 1-Tap Automation Controls
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-1">Simple switches designed for quick access without technical settings.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Master Toggle -->
+                        <div class="flex items-center justify-between p-4 bg-slate-950 border border-slate-800 rounded-xl">
+                            <div class="space-y-0.5">
+                                <div class="text-sm font-bold text-white flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                    <span>Automated Lead Rescue System</span>
+                                </div>
+                                <p class="text-xs text-slate-400">When active, AI answers calls on the 1st ring and texts missed callers within 15 seconds.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="control-master-active" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
+                        </div>
+
+                        <!-- Contractor Cell for Push Alerts -->
+                        <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Contractor Cell Phone (For Urgent Lead SMS Alerts)</label>
+                                <p class="text-[11px] text-slate-400 mb-2">Whenever the Voice AI answers a call or an emergency text comes in, we instantly text this number with a 1-tap call-back link.</p>
+                                <input type="text" id="control-contractor-phone" placeholder="(801) 555-0199" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500 font-mono">
+                            </div>
+                            <button type="button" id="save-quick-controls-btn" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs rounded-xl transition shadow-md shadow-brand-600/20">
+                                Save Notification Phone
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </main>
@@ -416,6 +557,88 @@
         </div>
     </div>
 
+    <!-- iMessage / WhatsApp-Style Conversation Drawer -->
+    <div id="conversation-drawer" class="fixed inset-0 z-50 flex justify-end bg-slate-950/80 backdrop-blur-sm hidden transition-all">
+        <div class="w-full max-w-lg bg-slate-900 border-l border-slate-800 h-full flex flex-col shadow-2xl">
+            <!-- Drawer Header -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 text-brand-400 font-bold flex items-center justify-center text-base border border-slate-700" id="drawer-avatar">
+                        C
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-white text-base" id="drawer-name">Customer Name</h3>
+                            <span id="drawer-window-badge"></span>
+                        </div>
+                        <p class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <span id="drawer-phone" class="font-mono"></span>
+                            <span>&bull;</span>
+                            <span id="drawer-service" class="text-brand-400"></span>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a id="drawer-call-btn" href="#" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/30 transition">
+                        <i class="fa-solid fa-phone"></i> Call Now
+                    </a>
+                    <button type="button" id="close-drawer-btn" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Address / Context Bar -->
+            <div id="drawer-address-bar" class="px-5 py-2.5 bg-slate-950/50 border-b border-slate-800/80 text-xs flex items-center justify-between text-slate-400">
+                <span class="flex items-center gap-1.5 text-amber-400/90 font-medium">
+                    <i class="fa-solid fa-location-dot text-amber-400"></i>
+                    <span id="drawer-address">No street address provided</span>
+                </span>
+                <span id="drawer-source" class="text-[11px] font-mono text-slate-500"></span>
+            </div>
+
+            <!-- Voice Transcript Callout (if Voice Call) -->
+            <div id="drawer-voice-box" class="m-4 p-3.5 bg-blue-950/30 border border-blue-500/30 rounded-xl space-y-1 hidden">
+                <div class="text-[11px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-microphone-lines"></i> Voice AI Recorded Speech Transcript
+                </div>
+                <p id="drawer-transcript" class="text-xs text-slate-200 italic"></p>
+            </div>
+
+            <!-- Threaded Chat Message Feed -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3" id="drawer-messages">
+                <!-- Message Bubbles injected via JS -->
+            </div>
+
+            <!-- Quick Reply Chips -->
+            <div class="p-3 bg-slate-950/60 border-t border-slate-800/80">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">1-Tap Quick Replies for Field Work</p>
+                <div class="flex gap-1.5 overflow-x-auto pb-1" id="quick-reply-chips">
+                    <button type="button" class="quick-chip whitespace-nowrap px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition" data-text="On my way! ETA is about 20 minutes.">
+                        🏃 On my way!
+                    </button>
+                    <button type="button" class="quick-chip whitespace-nowrap px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition" data-text="Hi! I'm on a job right now. Can I call you in 10 minutes?">
+                        📞 Call in 10 mins?
+                    </button>
+                    <button type="button" class="quick-chip whitespace-nowrap px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition" data-text="What is your exact street address in West Valley?">
+                        📍 What is address?
+                    </button>
+                    <button type="button" class="quick-chip whitespace-nowrap px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition" data-text="We offer free on-site estimates! Does 2:00 PM work for you today?">
+                        💰 Free estimate?
+                    </button>
+                </div>
+            </div>
+
+            <!-- Text Message Input Box -->
+            <form id="drawer-reply-form" class="p-4 bg-slate-950 border-t border-slate-800 flex items-center gap-2">
+                <input type="text" id="drawer-reply-input" placeholder="Type text message to customer..." required class="flex-1 px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-brand-500">
+                <button type="submit" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 shadow-lg shadow-brand-600/30 transition">
+                    <i class="fa-solid fa-paper-plane"></i> Send
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- SMS Dispatch / Conversation Preview Modal -->
     <div id="sms-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 hidden">
         <div class="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
@@ -504,6 +727,113 @@
             document.getElementById('count-new').textContent = newCount;
             document.getElementById('count-followed').textContent = followedCount;
             document.getElementById('count-closed').textContent = closedCount;
+
+            // Rescued Revenue Calculation
+            const slider = document.getElementById('avg-job-slider');
+            const avgJob = slider ? parseInt(slider.value) : 850;
+            const rescuedCount = followedCount + closedCount;
+            const totalRescued = rescuedCount * avgJob;
+            const roiMult = (totalRescued / 99).toFixed(0);
+
+            const bannerDollars = document.getElementById('banner-rescued-dollars');
+            if (bannerDollars) bannerDollars.textContent = `$${totalRescued.toLocaleString()}`;
+            const bannerCount = document.getElementById('banner-rescued-count');
+            if (bannerCount) bannerCount.textContent = rescuedCount;
+            const bannerRoi = document.getElementById('banner-roi-multiple');
+            if (bannerRoi) bannerRoi.textContent = `${roiMult}x ROI`;
+
+            const roiTotal = document.getElementById('roi-total-revenue');
+            if (roiTotal) roiTotal.textContent = `$${totalRescued.toLocaleString()}`;
+            const roiMultEl = document.getElementById('roi-multiplier');
+            if (roiMultEl) roiMultEl.textContent = `${roiMult}x ROI`;
+            const roiCountEl = document.getElementById('roi-lead-count');
+            if (roiCountEl) roiCountEl.textContent = rescuedCount;
+        }
+
+        function openConversationDrawer(lead) {
+            if (!lead) return;
+            selectedLeadForSMS = lead;
+            const drawer = document.getElementById('conversation-drawer');
+            if (!drawer) return;
+
+            document.getElementById('drawer-name').textContent = lead.name || 'Customer';
+            document.getElementById('drawer-phone').textContent = lead.phone || '';
+            document.getElementById('drawer-service').textContent = lead.service || '';
+            document.getElementById('drawer-avatar').textContent = lead.name ? lead.name.charAt(0) : 'C';
+            document.getElementById('drawer-call-btn').href = 'tel:' + (lead.phone || '').replace(/\D/g, '');
+
+            const addressEl = document.getElementById('drawer-address');
+            if (addressEl) addressEl.textContent = lead.address || 'West Valley City service area';
+
+            const sourceEl = document.getElementById('drawer-source');
+            if (sourceEl) sourceEl.textContent = lead.source || 'Lead Rescue';
+
+            // Window badge
+            const badgeEl = document.getElementById('drawer-window-badge');
+            const pw = lead.preferred_window || '';
+            if (pw.includes('Emergency')) {
+                badgeEl.innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">EMERGENCY</span>`;
+            } else if (pw.includes('Morning')) {
+                badgeEl.innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">MORNING</span>`;
+            } else if (pw.includes('Afternoon')) {
+                badgeEl.innerHTML = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">AFTERNOON</span>`;
+            } else {
+                badgeEl.innerHTML = '';
+            }
+
+            // Voice transcript box
+            const voiceBox = document.getElementById('drawer-voice-box');
+            const transcriptEl = document.getElementById('drawer-transcript');
+            if (lead.notes && lead.notes.includes('Voice call transcript:')) {
+                const parts = lead.notes.split('Voice call transcript:');
+                transcriptEl.textContent = `"${parts[1].trim()}"`;
+                voiceBox.classList.remove('hidden');
+            } else {
+                voiceBox.classList.add('hidden');
+            }
+
+            // Threaded messages feed
+            const messagesContainer = document.getElementById('drawer-messages');
+            let threadHtml = '';
+
+            // 1. Initial inbound message
+            const initialInbound = (lead.notes && !lead.notes.includes('Voice call transcript:')) ? lead.notes : `Service requested: ${lead.service}`;
+            threadHtml += `
+                <div class="flex items-start gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-xs flex-shrink-0">
+                        ${lead.name ? lead.name.charAt(0) : 'C'}
+                    </div>
+                    <div class="max-w-[80%] bg-slate-800/80 border border-slate-700/80 rounded-2xl rounded-tl-sm p-3 text-xs text-slate-200 space-y-1">
+                        <p>${initialInbound}</p>
+                        <span class="text-[10px] text-slate-400 block text-right">${lead.created_at || 'Incoming'}</span>
+                    </div>
+                </div>
+            `;
+
+            // 2. Automated AI response bubble
+            if (lead.ai_sms_draft) {
+                threadHtml += `
+                    <div class="flex items-start justify-end gap-2.5">
+                        <div class="max-w-[80%] bg-brand-600/20 border border-brand-500/30 rounded-2xl rounded-tr-sm p-3 text-xs text-white space-y-1">
+                            <div class="text-[10px] font-bold text-brand-400 uppercase tracking-wider flex items-center gap-1">
+                                <i class="fa-solid fa-robot"></i> Automated AI SMS Follow-up
+                            </div>
+                            <p class="font-mono text-slate-200">${lead.ai_sms_draft}</p>
+                            <span class="text-[10px] text-brand-400/80 block text-right flex items-center justify-end gap-1">
+                                <i class="fa-solid fa-check-double text-blue-400"></i> Sent to customer
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            messagesContainer.innerHTML = threadHtml;
+            drawer.classList.remove('hidden');
+        }
+
+        function closeConversationDrawer() {
+            const drawer = document.getElementById('conversation-drawer');
+            if (drawer) drawer.classList.add('hidden');
         }
 
         function renderLeadsList() {
@@ -546,7 +876,7 @@
                 const addressDisplay = lead.address ? `<span>&bull;</span><span class="text-amber-400/90 font-medium"><i class="fa-solid fa-location-dot text-amber-400 mr-1"></i>${lead.address}</span>` : '';
 
                 return `
-                    <div class="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 sm:p-5 transition shadow-lg space-y-4">
+                    <div class="lead-card bg-slate-900 border border-slate-800 hover:border-brand-500/50 rounded-2xl p-4 sm:p-5 transition shadow-lg space-y-4 cursor-pointer" data-id="${lead.id}">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-sm border border-slate-700">
@@ -554,7 +884,7 @@
                                 </div>
                                 <div>
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="font-bold text-base text-white">${lead.name}</h3>
+                                        <h3 class="font-bold text-base text-white hover:text-brand-400 transition">${lead.name}</h3>
                                         ${statusBadge}
                                         ${windowBadge}
                                     </div>
@@ -586,16 +916,16 @@
                         ` : ''}
 
                         <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
-                            <button class="open-sms-modal-btn px-3.5 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition" data-id="${lead.id}">
-                                <i class="fa-solid fa-paper-plane"></i> Preview / Send SMS
+                            <button type="button" class="open-drawer-btn px-4 py-2 bg-brand-600/20 hover:bg-brand-600/30 text-brand-400 border border-brand-500/30 rounded-xl text-xs font-semibold flex items-center gap-2 transition" data-id="${lead.id}">
+                                <i class="fa-solid fa-comments"></i> Open Chat / Reply SMS
                             </button>
 
                             ${lead.status !== 'Closed' ? `
-                                <button class="update-status-btn px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition" data-id="${lead.id}" data-status="Closed">
+                                <button type="button" class="update-status-btn px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition" data-id="${lead.id}" data-status="Closed">
                                     <i class="fa-solid fa-circle-check text-purple-400 mr-1"></i> Mark Closed Job
                                 </button>
                             ` : `
-                                <button class="update-status-btn px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition" data-id="${lead.id}" data-status="New">
+                                <button type="button" class="update-status-btn px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition" data-id="${lead.id}" data-status="New">
                                     <i class="fa-solid fa-rotate-left mr-1"></i> Re-open Lead
                                 </button>
                             `}
@@ -604,21 +934,28 @@
                 `;
             }).join('');
 
-            document.querySelectorAll('.open-sms-modal-btn').forEach(btn => {
-                btn.onclick = () => {
+            // Open Conversation Drawer triggers
+            document.querySelectorAll('.open-drawer-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
                     const id = parseInt(btn.dataset.id);
                     const lead = activeLeadsData.find(l => l.id === id);
-                    if (lead) {
-                        selectedLeadForSMS = lead;
-                        document.getElementById('sms-modal-lead-name').textContent = `To: ${lead.name} (${lead.phone})`;
-                        document.getElementById('sms-message-text').value = lead.ai_sms_draft || '';
-                        document.getElementById('sms-modal').classList.remove('hidden');
-                    }
+                    if (lead) openConversationDrawer(lead);
+                };
+            });
+
+            document.querySelectorAll('.lead-card').forEach(card => {
+                card.onclick = (e) => {
+                    if (e.target.closest('button')) return;
+                    const id = parseInt(card.dataset.id);
+                    const lead = activeLeadsData.find(l => l.id === id);
+                    if (lead) openConversationDrawer(lead);
                 };
             });
 
             document.querySelectorAll('.update-status-btn').forEach(btn => {
-                btn.onclick = async () => {
+                btn.onclick = async (e) => {
+                    e.stopPropagation();
                     const id = parseInt(btn.dataset.id) || btn.dataset.id;
                     const newStatus = btn.dataset.status;
                     const item = activeLeadsData.find(l => l.id == id);
@@ -840,6 +1177,136 @@
                 }
                 document.getElementById('sms-modal').classList.add('hidden');
             };
+
+            // Conversation Drawer Close & Click Outside
+            const closeDrawerBtn = document.getElementById('close-drawer-btn');
+            if (closeDrawerBtn) closeDrawerBtn.onclick = closeConversationDrawer;
+
+            const convDrawer = document.getElementById('conversation-drawer');
+            if (convDrawer) {
+                convDrawer.onclick = (e) => {
+                    if (e.target === convDrawer) closeConversationDrawer();
+                };
+            }
+
+            // Quick Reply Chips
+            document.querySelectorAll('.quick-chip').forEach(chip => {
+                chip.onclick = () => {
+                    const input = document.getElementById('drawer-reply-input');
+                    if (input) {
+                        input.value = chip.dataset.text;
+                        input.focus();
+                    }
+                };
+            });
+
+            // Drawer Reply Form Submit
+            const drawerForm = document.getElementById('drawer-reply-form');
+            if (drawerForm) {
+                drawerForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('drawer-reply-input');
+                    const text = input.value.trim();
+                    if (!text || !selectedLeadForSMS) return;
+
+                    // Append outgoing bubble to drawer
+                    const messagesContainer = document.getElementById('drawer-messages');
+                    messagesContainer.innerHTML += `
+                        <div class="flex items-start justify-end gap-2.5">
+                            <div class="max-w-[80%] bg-blue-600/30 border border-blue-500/40 rounded-2xl rounded-tr-sm p-3 text-xs text-white space-y-1">
+                                <div class="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                                    <i class="fa-solid fa-user"></i> You (Contractor)
+                                </div>
+                                <p class="text-slate-100">${text}</p>
+                                <span class="text-[10px] text-blue-300/80 block text-right">Just now</span>
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    input.value = '';
+
+                    // Update lead state
+                    selectedLeadForSMS.status = 'Followed Up';
+                    calculateAndRenderStats();
+                    renderLeadsList();
+
+                    try {
+                        await fetch('/api/sms/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                lead_id: selectedLeadForSMS.id,
+                                phone: selectedLeadForSMS.phone,
+                                message: text
+                            })
+                        });
+                        fetchLeads();
+                    } catch(e){
+                        console.error("Drawer reply SMS error:", e);
+                    }
+                };
+            }
+
+            // 3-Tab Switcher Logic
+            const tabInbox = document.getElementById('view-tab-inbox');
+            const tabRoi = document.getElementById('view-tab-roi');
+            const tabControls = document.getElementById('view-tab-controls');
+            const panelInbox = document.getElementById('panel-inbox');
+            const panelRoi = document.getElementById('panel-roi');
+            const panelControls = document.getElementById('panel-controls');
+
+            function switchView(view) {
+                [tabInbox, tabRoi, tabControls].forEach(t => {
+                    if (t) t.className = 'flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-slate-400 hover:text-white';
+                });
+                [panelInbox, panelRoi, panelControls].forEach(p => {
+                    if (p) p.classList.add('hidden');
+                });
+
+                if (view === 'inbox' && tabInbox && panelInbox) {
+                    tabInbox.className = 'flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-brand-600 text-white shadow-md shadow-brand-600/30';
+                    panelInbox.classList.remove('hidden');
+                } else if (view === 'roi' && tabRoi && panelRoi) {
+                    tabRoi.className = 'flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-emerald-600 text-white shadow-md shadow-emerald-600/30';
+                    panelRoi.classList.remove('hidden');
+                } else if (view === 'controls' && tabControls && panelControls) {
+                    tabControls.className = 'flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md shadow-blue-600/30';
+                    panelControls.classList.remove('hidden');
+                }
+            }
+
+            if (tabInbox) tabInbox.onclick = () => switchView('inbox');
+            if (tabRoi) tabRoi.onclick = () => switchView('roi');
+            if (tabControls) tabControls.onclick = () => switchView('controls');
+
+            const quickRoiBtn = document.getElementById('quick-view-roi-btn');
+            if (quickRoiBtn) quickRoiBtn.onclick = () => switchView('roi');
+
+            // Average Job Ticket Slider
+            const avgSlider = document.getElementById('avg-job-slider');
+            const avgDisplay = document.getElementById('avg-job-display');
+            if (avgSlider && avgDisplay) {
+                avgSlider.oninput = () => {
+                    avgDisplay.textContent = `$${parseInt(avgSlider.value).toLocaleString()}`;
+                    calculateAndRenderStats();
+                };
+            }
+
+            // Quick Controls Save
+            const saveControlsBtn = document.getElementById('save-quick-controls-btn');
+            if (saveControlsBtn) {
+                saveControlsBtn.onclick = async () => {
+                    const phone = document.getElementById('control-contractor-phone').value;
+                    try {
+                        await fetch('/api/settings', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contractor_mobile: phone })
+                        });
+                        alert('Contractor alert phone saved! Emergency leads will now text this number.');
+                    } catch(e){}
+                };
+            }
 
             if (localStorage.getItem('lead_rescue_token')) {
                 unlockDashboard();
