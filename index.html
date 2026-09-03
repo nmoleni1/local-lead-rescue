@@ -806,13 +806,11 @@
                                 CallSid: 'SIM_' + Date.now()
                             })
                         });
-                        const data = await res.json();
-                        if (data.twiml) {
-                            // Extract spoken response from Say tag for friendly feedback
-                            const match = data.twiml.match(/<Say[^>]*>([\s\S]*?)<\/Say>/i);
-                            const spokenText = match ? match[1].replace(/\s+/g, ' ').trim() : 'Call processed by Voice AI!';
-                            alert(`🎙️ Voice AI Receptionist Dispatched!\n\nAI Response:\n"${spokenText}"`);
-                        }
+                        const resText = await res.text();
+                        // Extract spoken response from Say tag for friendly feedback
+                        const match = resText.match(/<Say[^>]*>([\s\S]*?)<\/Say>/i);
+                        const spokenText = match ? match[1].replace(/\s+/g, ' ').trim() : 'Call processed by Voice AI!';
+                        alert(`🎙️ Voice AI Receptionist Dispatched!\n\nAI Spoken Response:\n"${spokenText}"`);
                         fetchLeads();
                     } catch(e) {
                         console.error("Voice simulator submit error:", e);
