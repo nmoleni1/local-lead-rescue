@@ -41,10 +41,10 @@ def supabase_request(endpoint, method="GET", data=None):
 def get_settings():
     default_settings = {
         "business_name": "Apex Plumbing & HVAC",
-        "business_phone": "(555) 123-4567",
-        "twilio_sid": "",
-        "twilio_token": "",
-        "twilio_phone": "",
+        "business_phone": "(385) 270-8257",
+        "twilio_sid": os.environ.get("TWILIO_ACCOUNT_SID", ""),
+        "twilio_token": os.environ.get("TWILIO_AUTH_TOKEN", ""),
+        "twilio_phone": os.environ.get("TWILIO_PHONE_NUMBER", "+13852708257"),
         "ai_template": "Hi {first_name}! Thanks for reaching out to {business_name} regarding '{service}'. We have licensed technicians available. Can we call you now to assist?"
     }
     
