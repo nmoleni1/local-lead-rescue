@@ -16,6 +16,11 @@ if RAW_URL.endswith('/rest/v1'):
 SUPABASE_URL = RAW_URL
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5bGVnYWZyYnlyb2t0cGp1bWxpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzY5NDQ5NSwiZXhwIjoyMTAzMjcwNDk1fQ.J9hLv9nPhJEOxF0BclA3TRMtA5t0zcy73cYWgu5nfLM").strip()
 
+def xml_escape(text):
+    if not text:
+        return ""
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;").replace("'", "&apos;")
+
 # REST Helper for Supabase (Reliable, fast, zero-dependency)
 def supabase_request(endpoint, method="GET", data=None):
     if not SUPABASE_URL or not SUPABASE_KEY:
@@ -363,11 +368,12 @@ def handle_api_request(method, path, body_str):
         # Respond with bilingual TwiML (English + Spanish) that gathers speech.
         settings = get_settings()
         biz_name = settings.get("business_name", "our team")
+        safe_biz = xml_escape(biz_name)
         twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="speech" action="/api/voice/gather" method="POST" speechTimeout="auto" language="en-US">
     <Say voice="Polly.Joanna">
-      Hi there! Thanks for calling {biz_name}. I'm the automated dispatch assistant.
+      Hi there! Thanks for calling {safe_biz}. I'm the automated dispatch assistant.
       Please describe what you need help with today, and I'll get a technician on the way for you.
     </Say>
     <Pause length="1"/>
@@ -388,6 +394,7 @@ def handle_api_request(method, path, body_str):
         speech_result = data.get("SpeechResult", "")
         settings = get_settings()
         biz_name = settings.get("business_name", "our team")
+        safe_biz = xml_escape(biz_name)
 
         lang = detect_language(speech_result)
         speech_lower = speech_result.lower()
@@ -418,6 +425,8 @@ def handle_api_request(method, path, body_str):
                 window_msg = "Un técnico se comunicará con usted en breve para coordinar su cita."
             else:
                 window_msg = "A technician will call you back shortly to schedule your appointment."
+
+        safe_msg = xml_escape(window_msg)
 
         # Determine service type from speech
         if any(w in speech_lower for w in ["plumb", "leak", "drain", "pipe", "water", "sewer",
@@ -466,8 +475,8 @@ def handle_api_request(method, path, body_str):
             twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Lupe" language="es-US">
-    ¡Excelente! He registrado su solicitud y un técnico de {biz_name} se comunicará con usted en breve para confirmar su cita.
-    {window_msg}
+    ¡Excelente! He registrado su solicitud y un técnico de {safe_biz} se comunicará con usted en breve para confirmar su cita.
+    {safe_msg}
     ¡Que tenga un excelente día!
   </Say>
   <Hangup/>
@@ -476,8 +485,8 @@ def handle_api_request(method, path, body_str):
             twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna">
-    Great! I've logged your service request and a technician from {biz_name} will be in touch shortly to confirm your appointment.
-    {window_msg}
+    Great! I've logged your service request and a technician from {safe_biz} will be in touch shortly to confirm your appointment.
+    {safe_msg}
     Have a great day!
   </Say>
   <Hangup/>
