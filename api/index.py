@@ -363,40 +363,53 @@ def handle_api_request(method, path, body_str):
 
     # ── Task 2: Voice AI Receptionist ────────────────────────────────────────
 
-    elif method == "POST" and path == "/api/voice/inbound":
+    elif method == "POST" and path.startswith("/api/voice/inbound"):
         # Twilio calls this when a call arrives on the contractor's LeadRescue number.
-        # Respond with bilingual TwiML (English + Spanish) that gathers speech.
+        # Respond with bilingual TwiML (English + Spanish) that gathers speech and DTMF.
         settings = get_settings()
         biz_name = settings.get("business_name", "our team")
         safe_biz = xml_escape(biz_name)
         twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" action="/api/voice/gather" method="POST" speechTimeout="auto" language="en-US">
+  <Gather input="speech dtmf" numDigits="1" action="/api/voice/gather" method="POST" speechTimeout="3" timeout="6" language="en-US">
     <Say voice="Polly.Joanna">
-      Hi there! Thanks for calling {safe_biz}. I'm the automated dispatch assistant.
-      Please describe what you need help with today, and I'll get a technician on the way for you.
+      Hi there! Thanks for calling {safe_biz}. For English, please describe your service emergency, or press 1.
     </Say>
     <Pause length="1"/>
     <Say voice="Polly.Lupe" language="es-US">
-      Para servicio en español, por favor díganos qué necesita y le enviaremos un técnico.
+      Para servicio en español, hable ahora o presione el 2.
     </Say>
   </Gather>
   <Say voice="Polly.Joanna">I didn't catch that. Please hold and we will call you right back!</Say>
 </Response>"""
         return 200, {"response_type": "twiml", "twiml": twiml}
 
-    elif method == "POST" and path == "/api/voice/gather":
-        # Twilio posts the caller's transcribed speech here.
-        # We auto-detect language (EN vs ES), classify service/window, log lead, and respond.
+    elif method == "POST" and path.startswith("/api/voice/gather"):
+        # Twilio posts speech transcript or keypad digits here.
         call_sid = data.get("CallSid", "")
         from_number = data.get("From", "Unknown")
         to_number = data.get("To", "")
-        speech_result = data.get("SpeechResult", "")
+        digits = data.get("Digits", "").strip()
+        speech_result = data.get("SpeechResult", "").strip()
         settings = get_settings()
         biz_name = settings.get("business_name", "our team")
         safe_biz = xml_escape(biz_name)
 
-        lang = detect_language(speech_result)
+        # Handle Spanish keypad selection (Press 2)
+        if digits == "2":
+            twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="speech" action="/api/voice/gather?lang=es" method="POST" speechTimeout="3" timeout="8" language="es-US">
+    <Say voice="Polly.Lupe" language="es-US">
+      Ha seleccionado servicio en español. Por favor díganos qué problema tiene, su dirección, y le enviaremos un técnico de {safe_biz}.
+    </Say>
+  </Gather>
+  <Say voice="Polly.Lupe" language="es-US">No pudimos escuchar su mensaje. Un técnico se comunicará con usted enseguida.</Say>
+</Response>"""
+            return 200, {"response_type": "twiml", "twiml": twiml}
+
+        is_forced_es = "lang=es" in path or digits == "2"
+        lang = "es" if is_forced_es else detect_language(speech_result)
         speech_lower = speech_result.lower()
 
         # Classify urgency window & format localized confirmation message
