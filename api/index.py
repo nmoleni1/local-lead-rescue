@@ -262,6 +262,48 @@ def generate_ai_sms_draft(name, service, notes="", language=None):
     else:
         return f"Hi {first_name}! Thanks for reaching out to {biz_name} regarding your request for '{service}'. We received your message and would love to help! When is a good time for a quick call?"
 
+def transcribe_with_deepgram(recording_url, settings, deepgram_key):
+    """Download Twilio recording and transcribe with Deepgram Nova-2.
+    Returns (transcript_str, language_code) — handles Spanglish natively."""
+    try:
+        sid = settings.get("twilio_sid", "").strip()
+        token = settings.get("twilio_token", "").strip()
+
+        # Twilio recordings need auth — append .mp3 for smallest file size
+        audio_url = recording_url + ".mp3" if not recording_url.endswith(".mp3") else recording_url
+        auth_header = base64.b64encode(f"{sid}:{token}".encode()).decode()
+        req = urllib.request.Request(audio_url)
+        req.add_header("Authorization", f"Basic {auth_header}")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            audio_data = resp.read()
+
+        # POST audio bytes to Deepgram Nova-2 with multilingual detection
+        dg_url = (
+            "https://api.deepgram.com/v1/listen"
+            "?model=nova-2"
+            "&detect_language=true"
+            "&punctuate=true"
+            "&smart_format=true"
+        )
+        dg_req = urllib.request.Request(dg_url, data=audio_data, method="POST")
+        dg_req.add_header("Authorization", f"Token {deepgram_key}")
+        dg_req.add_header("Content-Type", "audio/mp3")
+        with urllib.request.urlopen(dg_req, timeout=30) as dg_resp:
+            result = json.loads(dg_resp.read().decode())
+
+        channel = result["results"]["channels"][0]
+        transcript = channel["alternatives"][0]["transcript"]
+        detected = channel.get("detected_language", "en")
+        # Normalize: deepgram returns "es" or "en" (sometimes "es-419" etc.)
+        lang = "es" if detected.startswith("es") else "en"
+        print(f"Deepgram transcript [{detected}]: {transcript[:120]}")
+        return transcript, lang
+
+    except Exception as e:
+        print("Deepgram transcription error:", e)
+        return "", "en"
+
+
 def handle_api_request(method, path, body_str):
     path = path.rstrip('/')
     if not path.startswith('/api'):
@@ -364,84 +406,76 @@ def handle_api_request(method, path, body_str):
     # ── Task 2: Voice AI Receptionist ────────────────────────────────────────
 
     elif method == "POST" and path.startswith("/api/voice/inbound"):
-        # Twilio calls this when a call arrives on the contractor's LeadRescue number.
-        # Respond with bilingual TwiML (English + Spanish) that gathers speech and DTMF.
+        # Greet caller with Neural voices, then Record full audio (no language constraint).
+        # Deepgram Nova-2 will transcribe Spanglish from the recording.
         settings = get_settings()
         biz_name = settings.get("business_name", "our team")
         safe_biz = xml_escape(biz_name)
         twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech dtmf" numDigits="1" action="/api/voice/gather" method="POST" speechTimeout="3" timeout="6" language="en-US">
-    <Say voice="Polly.Joanna">
-      Hi there! Thanks for calling {safe_biz}. For English, please describe your service emergency, or press 1.
-    </Say>
-    <Pause length="1"/>
-    <Say voice="Polly.Lupe" language="es-US">
-      Para servicio en español, hable ahora o presione el 2.
-    </Say>
-  </Gather>
-  <Say voice="Polly.Joanna">I didn't catch that. Please hold and we will call you right back!</Say>
+  <Say voice="Polly.Joanna-Neural">
+    Hi! Thanks for calling {safe_biz}. Please describe your service need after the beep. You can speak in English or Spanish.
+  </Say>
+  <Say voice="Polly.Lupe-Neural" language="es-US">
+    Puede hablar en inglés o español.
+  </Say>
+  <Record maxLength="45" action="/api/voice/recording" method="POST" playBeep="true" transcribe="false"/>
+  <Say voice="Polly.Joanna-Neural">We didn't catch your message. A technician will call you right back!</Say>
 </Response>"""
         return 200, {"response_type": "twiml", "twiml": twiml}
 
-    elif method == "POST" and path.startswith("/api/voice/gather"):
-        # Twilio posts speech transcript or keypad digits here.
+    elif method == "POST" and path.startswith("/api/voice/recording"):
+        # Twilio posts RecordingUrl here after caller finishes speaking.
+        # Download audio → Deepgram Nova-2 (multilingual, Spanglish-capable) → classify → save lead.
         call_sid = data.get("CallSid", "")
         from_number = data.get("From", "Unknown")
         to_number = data.get("To", "")
-        digits = data.get("Digits", "").strip()
-        speech_result = data.get("SpeechResult", "").strip()
+        recording_url = data.get("RecordingUrl", "")
         settings = get_settings()
         biz_name = settings.get("business_name", "our team")
         safe_biz = xml_escape(biz_name)
+        deepgram_key = settings.get("deepgram_key", "")
 
-        # Handle Spanish keypad selection (Press 2)
-        if digits == "2":
-            twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="speech" action="/api/voice/gather?lang=es" method="POST" speechTimeout="3" timeout="8" language="es-US">
-    <Say voice="Polly.Lupe" language="es-US">
-      Ha seleccionado servicio en español. Por favor díganos qué problema tiene, su dirección, y le enviaremos un técnico de {safe_biz}.
-    </Say>
-  </Gather>
-  <Say voice="Polly.Lupe" language="es-US">No pudimos escuchar su mensaje. Un técnico se comunicará con usted enseguida.</Say>
-</Response>"""
-            return 200, {"response_type": "twiml", "twiml": twiml}
+        speech_result = ""
+        lang = "en"
 
-        is_forced_es = "lang=es" in path or digits == "2"
-        lang = "es" if is_forced_es else detect_language(speech_result)
+        if recording_url and deepgram_key:
+            speech_result, lang = transcribe_with_deepgram(
+                recording_url, settings, deepgram_key
+            )
+
+        if not speech_result:
+            # Fallback: no transcript captured
+            speech_result = "(no transcript)"
+
         speech_lower = speech_result.lower()
 
-        # Classify urgency window & format localized confirmation message
+        # Classify urgency window
         if any(w in speech_lower for w in ["emergency", "urgent", "asap", "flooding", "leak", "no heat", "no ac", "now",
                                            "emergencia", "urgente", "fuga", "inund", "ahora", "sin agua", "sin calor", "sin aire"]):
             preferred_window = "Emergency ASAP"
-            if lang == "es":
-                window_msg = "Estamos tratando su solicitud como una emergencia y tendremos un técnico en camino dentro de 2 a 4 horas."
-            else:
-                window_msg = "We're treating your request as an emergency and will have a technician dispatched within 2 to 4 hours."
+            window_msg = ("Estamos tratando su solicitud como una emergencia y tendremos un técnico en camino dentro de 2 a 4 horas."
+                          if lang == "es" else
+                          "We're treating your request as an emergency and will have a technician dispatched within 2 to 4 hours.")
         elif any(w in speech_lower for w in ["morning", "tomorrow morning", "8", "9", "10", "11", "manana", "mañana", "temprano"]):
             preferred_window = "Morning Window (8AM-12PM)"
-            if lang == "es":
-                window_msg = "Le hemos programado para una visita por la mañana entre las 8 AM y las 12 PM. Un técnico confirmará en breve."
-            else:
-                window_msg = "I've booked you in for a morning visit between 8 AM and noon. A technician will confirm their arrival time shortly."
-        elif any(w in speech_lower for w in ["afternoon", "1", "2", "3", "4", "tarde"]):
+            window_msg = ("Le hemos programado para una visita por la mañana entre las 8 AM y las 12 PM. Un técnico confirmará en breve."
+                          if lang == "es" else
+                          "I've booked you in for a morning visit between 8 AM and noon. A technician will confirm their arrival time shortly.")
+        elif any(w in speech_lower for w in ["afternoon", "tarde"]):
             preferred_window = "Afternoon Window (12PM-4PM)"
-            if lang == "es":
-                window_msg = "Le hemos programado para una visita por la tarde entre las 12 PM y las 4 PM. Un técnico confirmará en breve."
-            else:
-                window_msg = "I've booked you in for an afternoon visit between noon and 4 PM. A technician will confirm shortly."
+            window_msg = ("Le hemos programado para una visita por la tarde entre las 12 PM y las 4 PM. Un técnico confirmará en breve."
+                          if lang == "es" else
+                          "I've booked you in for an afternoon visit between noon and 4 PM. A technician will confirm shortly.")
         else:
             preferred_window = "Flexible"
-            if lang == "es":
-                window_msg = "Un técnico se comunicará con usted en breve para coordinar su cita."
-            else:
-                window_msg = "A technician will call you back shortly to schedule your appointment."
+            window_msg = ("Un técnico se comunicará con usted en breve para coordinar su cita."
+                          if lang == "es" else
+                          "A technician will call you back shortly to schedule your appointment.")
 
         safe_msg = xml_escape(window_msg)
 
-        # Determine service type from speech
+        # Classify service type
         if any(w in speech_lower for w in ["plumb", "leak", "drain", "pipe", "water", "sewer",
                                            "fuga", "agua", "tuberia", "tubería", "inodoro", "plomero", "lavamanos", "fregadero", "calentador"]):
             service = "Plumbing Service" if lang == "en" else "Plomería (Plumbing)"
@@ -451,13 +485,11 @@ def handle_api_request(method, path, body_str):
         elif any(w in speech_lower for w in ["electr", "outlet", "panel", "wiring", "breaker",
                                              "electricidad", "luz", "cable", "enchufe"]):
             service = "Electrical Service" if lang == "en" else "Electricidad (Electrical)"
-        elif any(w in speech_lower for w in ["roof", "gutter", "leak roof", "shingle",
-                                             "techo", "gotera", "teja"]):
+        elif any(w in speech_lower for w in ["roof", "gutter", "shingle", "techo", "gotera", "teja"]):
             service = "Roofing Service" if lang == "en" else "Techos (Roofing)"
         else:
             service = "General Service Request" if lang == "en" else "Servicio General"
 
-        # Create lead with language tag
         lang_tag = "[ES]" if lang == "es" else "[EN]"
         ai_sms = generate_ai_sms_draft("there", service, speech_result, language=lang)
         new_id = add_lead(
@@ -465,30 +497,30 @@ def handle_api_request(method, path, body_str):
             phone=from_number,
             service=service,
             notes=f"Voice transcript ({lang.upper()}): {speech_result}",
-            source=f"Voice AI ({lang.upper()})",
+            source=f"Voice AI Deepgram ({lang.upper()})",
             ai_sms_draft=ai_sms,
             status="New",
             preferred_window=preferred_window,
             call_sid=call_sid
         )
         log_call(call_sid=call_sid, from_number=from_number, to_number=to_number,
-                 transcript=f"[{lang.upper()}] {speech_result}", status="completed")
+                 transcript=f"[{lang.upper()}] {speech_result}", recording_url=recording_url, status="completed")
 
-        # Push instant SMS alert to contractor (notifies if customer speaks Spanish!)
+        # Push instant SMS alert to contractor
         contractor_mobile = settings.get("contractor_mobile", "")
         if contractor_mobile:
             if lang == "es":
-                alert = f"🚨 Lead en Español (Spanish Lead): {from_number} llamó sobre {service}. Ventana: {preferred_window}. Transcripción: \"{speech_result[:90]}\". Toca para llamar: {from_number}"
+                alert = f"🚨 Lead en Español: {from_number} llamó sobre {service}. Ventana: {preferred_window}. Transcripción: \"{speech_result[:90]}\". Toca para llamar: {from_number}"
             else:
                 alert = f"🚨 Voice Lead: {from_number} called about {service}. Window: {preferred_window}. Transcript: \"{speech_result[:90]}\". Tap to call: {from_number}"
             send_twilio_sms(contractor_mobile, alert)
 
-        # Generate response in appropriate voice (Polly.Lupe for Spanish, Polly.Joanna for English)
+        # Neural voice confirmation played back to caller
         if lang == "es":
             twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Lupe" language="es-US">
-    ¡Excelente! He registrado su solicitud y un técnico de {safe_biz} se comunicará con usted en breve para confirmar su cita.
+  <Say voice="Polly.Lupe-Neural" language="es-US">
+    ¡Excelente! He registrado su solicitud y un técnico de {safe_biz} se comunicará con usted en breve.
     {safe_msg}
     ¡Que tenga un excelente día!
   </Say>
@@ -497,8 +529,8 @@ def handle_api_request(method, path, body_str):
         else:
             twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Joanna">
-    Great! I've logged your service request and a technician from {safe_biz} will be in touch shortly to confirm your appointment.
+  <Say voice="Polly.Joanna-Neural">
+    Great! I've logged your service request and a technician from {safe_biz} will be in touch shortly.
     {safe_msg}
     Have a great day!
   </Say>
